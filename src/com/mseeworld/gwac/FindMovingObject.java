@@ -33,24 +33,27 @@ public class FindMovingObject {
   }
 
   public void findMovingObject() {
-    int thetaSize = 360;
-    int thetaRange = 36;
+    int thetaSize = 180;
     int rhoSize = 100;
+    int thetaRange = 36;
     int rhoRange = 10;
     int maxHoughFrameNunmber = 10;
-    int minValidPoint = 3;
+    int minValidPoint = 4;
     float maxDistance = 100;
     float rhoErrorTimes = (float) 1;
-    int validLineMinPoint = 3;
-    
+    int validLineMinPoint = 5;
+
+//    String[] dates = {"151218-2-34","151218-3-5", "151218-3-36", "151218-6-12",
+//      "151218-6-13", "151218-7-15", "151218-8-15", "151218-9-21", "151218-11-34"};
     String[] dates = {"151218-2-34"}; //debug2line  151218-2-34
 
-    HoughTransform ht = new HoughTransform(imgWidth, imgHeight, thetaSize, rhoSize, thetaRange, rhoRange, maxHoughFrameNunmber, minValidPoint, maxDistance, rhoErrorTimes, validLineMinPoint);
-
     for (String tname : dates) {
+      ot1list.clear();
 
-      String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\source-list\\" + tname + ".txt";
-      String outImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\outline.png";
+      HoughTransform ht = new HoughTransform(imgWidth, imgHeight, thetaSize, rhoSize, thetaRange, rhoRange, maxHoughFrameNunmber, minValidPoint, maxDistance, rhoErrorTimes, validLineMinPoint);
+
+      String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\source-list-old\\" + tname + ".txt";
+      String outImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\" + tname + "-outline.png";
       String houghImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\hough.png";
       String outPath = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\lines2\\";
 
@@ -60,20 +63,19 @@ public class FindMovingObject {
       int frameCount = 0;
       int pNum = 0;
       for (OT1 ot1 : ot1list) {
-
-        pNum++;
-//        if ((pNum - 1 >= 749 && pNum - 1 <= 753)) {
-//          System.out.print("pIdx=" + (pNum - 1 + ": "));
+//        if ((pNum >= 911 && pNum <= 923)) {
+//          System.out.print("pIdx=" + (pNum + ": "));
 //          ot1.printInfo();
 //        }
-        ht.historyAddPoint(ot1);
-        ht.lineAddPoint(ot1);
         if (lastFrameNumber != ot1.getFrameNumber()) {
           lastFrameNumber = ot1.getFrameNumber();
-          ht.findLines();
+          ht.endFrame();
         }
+        ht.historyAddPoint(ot1);
+        ht.lineAddPoint(ot1);
+
+        pNum++;
       }
-      ht.findLines();
 
       ht.drawPoint(outImage);
 //      ht.drawHoughImage(houghImage);
@@ -99,8 +101,10 @@ public class FindMovingObject {
         float dec = Float.parseFloat(tstr[3]);
         float mag = Float.parseFloat(tstr[5]);
         int number = Integer.parseInt(tstr[6]);
-        float xTemp = Float.parseFloat(tstr[8]);
-        float yTemp = Float.parseFloat(tstr[9]);
+//        float xTemp = Float.parseFloat(tstr[8]);
+//        float yTemp = Float.parseFloat(tstr[9]);
+        float xTemp = 0;
+        float yTemp = 0;
         Date tdate = sdf.parse(tstr[4]);
 
 //        if (!(x > 2345 && x < 2370 && y > 715 && y < 750)) {

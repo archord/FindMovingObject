@@ -14,6 +14,9 @@ public class HoughLine {
   public float theta;
   public float rho;
   public float lastRho;
+  public float lastTheta;
+  public float lastRho2;
+  public float lastTheta2;
   public ArrayList<HoughFrame> frameList;
   public int pointNumber;
 
@@ -21,12 +24,16 @@ public class HoughLine {
   public int lastFrameNumber = Integer.MIN_VALUE;
   public HoughtPoint firstPoint; //minNumber
   public HoughtPoint lastPoint; //maxNumber
+  public HoughtPoint lastPoint2; //倒数第二帧的最后一个点，用来和直线的最后一个点更新直线的theta和rho
 
   public float sinTheta;
   public float cosTheta;
 
   public float deltaX;
   public float deltaY;
+
+  public float speedX;
+  public float speedY;
 
   /**
    *
@@ -58,6 +65,7 @@ public class HoughLine {
       lastFrame.addPoint(hp);
     }
     findFirstAndLastPoint();
+//    updateThetaRho();
     pointNumber++;
   }
 
@@ -126,34 +134,81 @@ public class HoughLine {
    * @return
    */
   public boolean matchLastPoint(OT1 ot1, float maxDistance) {
-
-    double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
-    return (distance < maxDistance);
+    boolean flag = true;
+    if (this.pointNumber > 0) {
+      double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
+      flag = distance < maxDistance;
+    }
+    return flag;
   }
-  
+
   /**
    * 距离匹配和方向匹配
-   * 
+   *
    * @param ot1
    * @param maxDistance 新目标与直线最后一个点的距离不超过maxDistance
-   * @return 
+   * @return
    */
   public boolean matchLastPoint2(OT1 ot1, float maxDistance) {
 
-    double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
-    float xDelta = lastPoint.getX() - ot1.getX();
-    float yDelta = lastPoint.getY() - ot1.getY();
-    return (distance < maxDistance) && (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
+    boolean flag = true;
+    if (this.pointNumber > 0) {
+      double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
+      boolean deltaFlag = true;
+      if (this.frameList.size() >= 2) {
+        float xDelta = lastPoint.getX() - ot1.getX();
+        float yDelta = lastPoint.getY() - ot1.getY();
+        deltaFlag = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
+      }
+      flag = (distance < maxDistance) && deltaFlag;
+    }
+    return flag;
   }
 
+  public boolean lineMatch() {
+
+    return false;
+  }
+
+  public void updateThetaRho() {
+
+    if (this.frameList.size() >= 4) {
+      float xdelta = lastPoint.getX() - lastPoint2.getX();
+      float ydelta = lastPoint.getY() - lastPoint2.getY();
+      double kangle = Math.atan2(ydelta, xdelta);
+      if (kangle < 0) {
+        kangle += Math.PI;
+      }
+      if (theta < 1.57) {
+        lastTheta2 = (float) (kangle - 1.57);
+      } else {
+        lastTheta2 = (float) (kangle + 1.57);
+      }
+      System.out.println(String.format("theta1= %5.3f, kangle= %5.3f, theta2= %5.3f", theta, kangle, lastTheta2));
+    }
+  }
+
+  public void calculateSpeed() {
+
+  }
+
+  /**
+   * 只有在帧数大于等于2时，才有用
+   */
   public void findFirstAndLastPoint() {
 
     HoughFrame firstFrame = frameList.get(0);
     HoughFrame lastFrame = frameList.get(frameList.size() - 1);
+    HoughFrame lastFrame2 = lastFrame;
+
+    if (this.frameList.size() >= 2) {
+      lastFrame2 = frameList.get(frameList.size() - 2);
+    }
 
     HoughtPoint ffMinPoint, lfMinPoint;
 
     //PI/4=0.7854, PI*3/4=2.3562
+//    if (this.frameList.size() >= 2) {
     if (theta > 0.7854 && theta < 2.3562) {
       ffMinPoint = firstFrame.minY;
       lfMinPoint = lastFrame.minY;
@@ -170,29 +225,37 @@ public class HoughLine {
       if (deltaX > 0 && deltaY > 0) {
         firstPoint = firstFrame.minY;
         lastPoint = lastFrame.maxY;
+        lastPoint2 = lastFrame2.maxY;
       } else if (deltaX > 0 && deltaY < 0) {
         firstPoint = firstFrame.maxY;
         lastPoint = lastFrame.minY;
+        lastPoint2 = lastFrame2.minY;
       } else if (deltaX < 0 && deltaY > 0) {
         firstPoint = firstFrame.minY;
         lastPoint = lastFrame.maxY;
+        lastPoint2 = lastFrame2.maxY;
       } else {
         firstPoint = firstFrame.maxY;
         lastPoint = lastFrame.minY;
+        lastPoint2 = lastFrame2.minY;
       }
     } else {//theta大于135度小于45度，X方向变化大
       if (deltaX > 0 && deltaY > 0) {
         firstPoint = firstFrame.minX;
         lastPoint = lastFrame.maxX;
+        lastPoint2 = lastFrame2.maxX;
       } else if (deltaX > 0 && deltaY < 0) {
         firstPoint = firstFrame.minX;
         lastPoint = lastFrame.maxX;
+        lastPoint2 = lastFrame2.maxX;
       } else if (deltaX < 0 && deltaY > 0) {
         firstPoint = firstFrame.maxX;
         lastPoint = lastFrame.minX;
+        lastPoint2 = lastFrame2.minX;
       } else {
         firstPoint = firstFrame.maxX;
         lastPoint = lastFrame.minX;
+        lastPoint2 = lastFrame2.minX;
       }
     }
   }

@@ -34,6 +34,7 @@ public class HoughTransform {
 
   int maxHoughFrameNunmber;
   int minValidPoint;
+  int minValidFrame = 2; //完成第minValidFrame帧的添加之后，在添加下一帧的第一个点之前，计算所有直线的速度
 
   int imgWidth;
   int imgHeight;
@@ -158,33 +159,83 @@ public class HoughTransform {
       int curNumber = ot1.getFrameNumber();
       tline.removeOldFrame(curNumber - this.maxHoughFrameNunmber);
 
-      if (tline.pointNumber == 0 || tline.matchLastPoint(ot1, maxDistance)) { //tline.pointNumber == 0
+      if (tline.matchLastPoint(ot1, maxDistance)) { //tline.pointNumber == 0
         tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr), ot1.getX(), ot1.getY());
         tline.lastRho = (float) (fr * rhoStep);
       }
     }
   }
 
-  public void lineAddPoint(OT1 ot1) {
+  public void houghAddPoint2(OT1 ot1) {
 
-    boolean findLine = false;
-    for (HoughLine tmo : this.mvObjs) {
+    for (int t = 0; t < thetaSize; t++) {
 
-      int tLastFrameNumber = tmo.getLastFrameNumber();
-      if (ot1.getFrameNumber() - tLastFrameNumber + 1 <= this.maxHoughFrameNunmber) {
+      float fr = (float) ((((ot1.getX() - imgXCenter) * cosCache[t]) + ((ot1.getY() - imgYCenter) * sinCache[t]) + halfRho) / rhoStep);
+      int r = (int) fr;
+//      int r = Math.round(fr);
 
-        double trho = ((ot1.getX() - imgXCenter) * tmo.cosTheta + (ot1.getY() - imgYCenter) * tmo.sinTheta + halfRho); // / rhoStep
-        boolean matchLastPoint = tmo.matchLastPoint2(ot1, maxDistance);
-        if ((Math.abs(trho - tmo.lastRho) < rhoErrorTimes * this.rhoStep) && matchLastPoint) {  // 范围是不是太大  this.rhoStep
-          tmo.addPoint(numOT1s - 1, ot1.getFrameNumber(), tmo.theta, (float) (trho / rhoStep), ot1.getX(), ot1.getY());
-          tmo.lastRho = (float) trho;
-          findLine = true;
+      if (r < 0 || r >= this.rhoSize) {
+        System.out.println("x=" + ot1.getX() + ",y=" + ot1.getY() + ",theta=" + t + ",rho=" + r);
+        continue;
+      }
+
+      HoughLine tline = houghArray[t][r];
+      int curNumber = ot1.getFrameNumber();
+      tline.removeOldFrame(curNumber - this.maxHoughFrameNunmber);
+
+      if (tline.matchLastPoint(ot1, maxDistance)) {
+        tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr), ot1.getX(), ot1.getY());
+        tline.lastRho = (float) (fr * rhoStep);
+        if (tline.validSize() >= this.minValidPoint) {
+          mvObjs.add(tline);
+          houghArray[t][r] = new HoughLine((float) (t * thetaStep), (float) (r * rhoStep));
+          clearAllPoint(tline);
           break;
         }
       }
     }
+
+  }
+
+  /**
+   * 每添加一个点，都要同时更新直线的rho和theta，目标只更新了rho
+   *
+   * @param ot1
+   */
+  public void lineAddPoint(OT1 ot1) {
+
+    boolean findLine = false;
+    int i = 0;
+    for (HoughLine tmo : this.mvObjs) {
+//      if (i++ == 96) {
+//        System.out.println("here");
+//      }
+      int tLastFrameNumber = tmo.getLastFrameNumber();
+      if (ot1.getFrameNumber() - tLastFrameNumber + 1 <= this.maxHoughFrameNunmber) {
+
+        double trho = ((ot1.getX() - imgXCenter) * tmo.cosTheta + (ot1.getY() - imgYCenter) * tmo.sinTheta + halfRho); // / rhoStep
+        if ((Math.abs(trho - tmo.lastRho) < rhoErrorTimes * this.rhoStep)) {  // 范围是不是太大  this.rhoStep
+          boolean matchLastPoint = tmo.matchLastPoint2(ot1, maxDistance);
+          if (matchLastPoint) {
+            tmo.addPoint(numOT1s - 1, ot1.getFrameNumber(), tmo.theta, (float) (trho / rhoStep), ot1.getX(), ot1.getY());
+            tmo.lastRho = (float) trho;
+            findLine = true;
+            break;
+          }
+        }
+      }
+    }
     if (!findLine) {
-      this.houghAddPoint(ot1);
+      this.houghAddPoint2(ot1);
+    }
+  }
+
+  public void endFrame() {
+
+    for (HoughLine tmo : this.mvObjs) {
+      if (tmo.frameList.size() >= minValidFrame) {
+
+      }
     }
   }
 
@@ -358,15 +409,15 @@ public class HoughTransform {
     // draw the lines back onto the image 
     int totalLine = 0;
 
-    Integer idxArray[] = {52, 53, 54, 83, 87, 92, 101, 105, 110};
+    Integer idxArray[] = {96, 97, 98, 99, 100};
     ArrayList<Integer> idxList = new ArrayList(Arrays.asList(idxArray));
 
 //    for (int j = 0; j < 40; j++) {
     for (int j = 0; j < mvObjs.size(); j++) {
 
-//      if (!(idxList.contains(new Integer(j)))) {
-//        continue;
-//      }
+      if (!(idxList.contains(new Integer(j)))) {
+        continue;
+      }
       HoughLine mvObj = mvObjs.get(j);
 
       g2d.setColor(colors[j % colorLength]);
@@ -408,16 +459,16 @@ public class HoughTransform {
 
         g2d.setColor(Color.BLACK);
         g2d.setFont(font1);
-        drawStr = "" + (j + 1);
+        drawStr = "" + (j);
         g2d.drawString(drawStr, (int) lastOT1.getX() + 3 * pointSize, (int) lastOT1.getY() + pointSize);
       }
 
       String debugStr = String.format("line%02d: number=%3d, theta=%10.5f, theta=%10.5f, theta=%10.5f, rho=%10.5f, rho=%10.5f, lastRho=%10.5f, lastRho=%10.5f",
-              j + 1, mvObj.pointNumber, mvObj.theta * 180 / Math.PI, mvObj.theta / thetaStep, mvObj.theta, mvObj.rho / rhoStep, mvObj.rho, mvObj.lastRho / rhoStep, mvObj.lastRho);
+              j, mvObj.pointNumber, mvObj.theta * 180 / Math.PI, mvObj.theta / thetaStep, mvObj.theta, mvObj.rho / rhoStep, mvObj.rho, mvObj.lastRho / rhoStep, mvObj.lastRho);
       System.out.println(debugStr);
-//      if (idxList.contains(j)) {
-      mvObj.printInfo(historyOT1s);
-//      }
+      if (idxList.contains(j)) {
+        mvObj.printInfo(historyOT1s);
+      }
     }
 
     try {
