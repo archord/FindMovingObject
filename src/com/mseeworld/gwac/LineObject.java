@@ -49,6 +49,7 @@ public class LineObject {
    * @param rho
    * @param imgXCenter
    * @param imgYCenter
+   * @param halfRho
    */
   public LineObject(float theta, float rho, float imgXCenter, float imgYCenter, float halfRho) {
     this.theta = theta;
@@ -70,17 +71,13 @@ public class LineObject {
     this.endLine = false;
   }
   
-  public LineObject(HoughLine hl) {
+  public void cloneLine(HoughLine hl) {
     this.frameList = hl.frameList;
     this.pointList = hl.pointList;
     this.pointNumber = hl.pointNumber;
     this.lastFrameNumber = hl.lastFrameNumber;
     this.lastPoint = hl.lastPoint;
-    this.theta = hl.theta;
-    this.rho = hl.rho;
-    this.imgXCenter = hl.imgXCenter;
-    this.imgYCenter = hl.imgYCenter;
-    this.halfRho = hl.halfRho;
+    this.lastRho = hl.lastRho;
     hl.clearAll();
 
     avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());

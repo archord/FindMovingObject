@@ -149,10 +149,11 @@ public class HoughTransform {
         tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr * rhoStep), ot1.getX(), ot1.getY());
         tline.lastRho = (float) (fr * rhoStep);
         if (tline.validSize() >= this.minValidPoint) {
-          LineObject lineObj = new LineObject(tline);
-          mvObjs.add(lineObj);
+          LineObject lineObj = new LineObject((float) (t * thetaStep), (float) (r * rhoStep), imgXCenter, imgYCenter, (float) halfRho);
+          lineObj.cloneLine(tline);
           lineObj.updateThetaRho();
           lineObj.calculateSpeed();
+          mvObjs.add(lineObj);
           clearAllPoint(lineObj);
           break;
         }
