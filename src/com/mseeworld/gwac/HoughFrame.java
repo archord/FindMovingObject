@@ -38,7 +38,7 @@ public class HoughFrame {
     maxY = hp;
   }
 
-  public void addPoint(HoughtPoint hp) {
+  public final void addPoint(HoughtPoint hp) {
     this.pointList.add(hp);
     findMinAndMaxXY(hp);
   }
@@ -65,9 +65,15 @@ public class HoughFrame {
       } else {
         findMinAndMaxXY(hp);
       }
+      i++;
     }
   }
 
+  /**
+   * 每新增加一个点，就更新一次X、Y的最大值最小值
+   *
+   * @param hp
+   */
   public void findMinAndMaxXY(HoughtPoint hp) {
 
     float tx = hp.getX();
@@ -88,33 +94,4 @@ public class HoughFrame {
     deltaY = maxY.getY() - minY.getY();
   }
 
-  public void findMinAndMaxXY1() {
-
-    for (int i = 0; i < pointList.size(); i++) {
-      HoughtPoint tpoint = pointList.get(i);
-      float tx = tpoint.getX();
-      float ty = tpoint.getY();
-      if (i == 0) {
-        minX = tpoint;
-        maxX = minX;
-        minY = tpoint;
-        maxY = minY;
-      } else {
-        if (tx < minX.getX()) {
-          minX = tpoint;
-        }
-        if (tx > maxX.getX()) {
-          maxX = tpoint;
-        }
-        if (ty < minY.getY()) {
-          minY = tpoint;
-        }
-        if (ty > maxY.getY()) {
-          maxY = tpoint;
-        }
-      }
-    }
-    deltaX = maxX.getX() - minX.getX();
-    deltaY = maxY.getY() - minY.getY();
-  }
 }

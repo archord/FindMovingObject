@@ -30,7 +30,7 @@ public class HoughTransform {
   protected int numOT1s;
   HoughLine[][] houghArray;
   ArrayList<OT1> historyOT1s;
-  ArrayList<HoughLine> mvObjs;
+  ArrayList<LineObject> mvObjs;
 
   int maxHoughFrameNunmber;
   int minValidPoint;
@@ -117,7 +117,7 @@ public class HoughTransform {
 
     for (int t = 0; t < thetaSize; t++) {
       for (int r = 0; r < rhoSize; r++) {
-        houghArray[t][r] = new HoughLine((float) (t * thetaStep), (float) (r * rhoStep));
+        houghArray[t][r] = new HoughLine((float) (t * thetaStep), (float) (r * rhoStep), imgXCenter, imgYCenter, (float) halfRho);
 //        houghArray[t][r] = new HoughLine((float) (t), (float) (r));
       }
     }
@@ -125,54 +125,16 @@ public class HoughTransform {
   }
 
   public void historyAddPoint(OT1 ot1) {
-//    ot1.setY(this.imgHeight - ot1.getY());
     historyOT1s.add(ot1);
     numOT1s++;
   }
 
-  /**
-   * Adds a single point to the hough transform. You can use this method
-   * directly if your data isn't represented as a buffered image.
-   *
-   * @param ot1
-   */
   public void houghAddPoint(OT1 ot1) {
 
-    // Go through each value of theta 
-    for (int t = 0; t < thetaSize; t++) {
-
-      //Work out the r values for each theta step 
-      float fr = (float) ((((ot1.getX() - imgXCenter) * cosCache[t]) + ((ot1.getY() - imgYCenter) * sinCache[t]) + halfRho) / rhoStep);
-      int r = (int) fr;
-//      int r = Math.round(fr);
-
-      if (r < 0 || r >= this.rhoSize) {
-        System.out.println("x=" + ot1.getX() + ",y=" + ot1.getY() + ",theta=" + t + ",rho=" + r);
-        continue;
-      }
-
-//      if(t==129&&r==20&&ot1.getFrameNumber()==2101){
-//        System.out.println("here");
-//      }
-      // Increment the hough array 
-      HoughLine tline = houghArray[t][r];
-      int curNumber = ot1.getFrameNumber();
-      tline.removeOldFrame(curNumber - this.maxHoughFrameNunmber);
-
-      if (tline.matchLastPoint(ot1, maxDistance)) { //tline.pointNumber == 0
-        tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr), ot1.getX(), ot1.getY());
-        tline.lastRho = (float) (fr * rhoStep);
-      }
-    }
-  }
-
-  public void houghAddPoint2(OT1 ot1) {
-
     for (int t = 0; t < thetaSize; t++) {
 
       float fr = (float) ((((ot1.getX() - imgXCenter) * cosCache[t]) + ((ot1.getY() - imgYCenter) * sinCache[t]) + halfRho) / rhoStep);
-      int r = (int) fr;
-//      int r = Math.round(fr);
+      int r = Math.round(fr);
 
       if (r < 0 || r >= this.rhoSize) {
         System.out.println("x=" + ot1.getX() + ",y=" + ot1.getY() + ",theta=" + t + ",rho=" + r);
@@ -184,12 +146,14 @@ public class HoughTransform {
       tline.removeOldFrame(curNumber - this.maxHoughFrameNunmber);
 
       if (tline.matchLastPoint(ot1, maxDistance)) {
-        tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr), ot1.getX(), ot1.getY());
+        tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr * rhoStep), ot1.getX(), ot1.getY());
         tline.lastRho = (float) (fr * rhoStep);
         if (tline.validSize() >= this.minValidPoint) {
-          mvObjs.add(tline);
-          houghArray[t][r] = new HoughLine((float) (t * thetaStep), (float) (r * rhoStep));
-          clearAllPoint(tline);
+          LineObject lineObj = new LineObject(tline);
+          mvObjs.add(lineObj);
+          lineObj.updateThetaRho();
+          lineObj.calculateSpeed();
+          clearAllPoint(lineObj);
           break;
         }
       }
@@ -206,19 +170,18 @@ public class HoughTransform {
 
     boolean findLine = false;
     int i = 0;
-    for (HoughLine tmo : this.mvObjs) {
-//      if (i++ == 96) {
-//        System.out.println("here");
-//      }
-      int tLastFrameNumber = tmo.getLastFrameNumber();
-      if (ot1.getFrameNumber() - tLastFrameNumber + 1 <= this.maxHoughFrameNunmber) {
+    for (LineObject tmo : this.mvObjs) {
+
+      if (!tmo.isEndLine(ot1.getFrameNumber() - this.maxHoughFrameNunmber + 1)) {
 
         double trho = ((ot1.getX() - imgXCenter) * tmo.cosTheta + (ot1.getY() - imgYCenter) * tmo.sinTheta + halfRho); // / rhoStep
         if ((Math.abs(trho - tmo.lastRho) < rhoErrorTimes * this.rhoStep)) {  // 范围是不是太大  this.rhoStep
           boolean matchLastPoint = tmo.matchLastPoint2(ot1, maxDistance);
           if (matchLastPoint) {
-            tmo.addPoint(numOT1s - 1, ot1.getFrameNumber(), tmo.theta, (float) (trho / rhoStep), ot1.getX(), ot1.getY());
+            tmo.addPoint(numOT1s - 1, ot1.getFrameNumber(), tmo.theta, (float) (trho), ot1.getX(), ot1.getY());
             tmo.lastRho = (float) trho;
+            tmo.updateThetaRho();
+            tmo.calculateSpeed();
             findLine = true;
             break;
           }
@@ -226,67 +189,20 @@ public class HoughTransform {
       }
     }
     if (!findLine) {
-      this.houghAddPoint2(ot1);
+      this.houghAddPoint(ot1);
     }
   }
 
   public void endFrame() {
 
-    for (HoughLine tmo : this.mvObjs) {
+    for (LineObject tmo : this.mvObjs) {
       if (tmo.frameList.size() >= minValidFrame) {
 
       }
     }
   }
 
-  public void findLines() {
-    if (numOT1s > 0) {
-
-      // Search for local peaks above threshold to draw 
-      for (int t = 0; t < thetaSize; t++) {
-        loop:
-//        for (int r = rhoRange; r < rhoSize - rhoRange; r++) {
-        for (int r = 0; r < rhoSize; r++) {
-
-          HoughLine tline = houghArray[t][r];
-          // Only consider points above or equal threshold 
-          if (tline.validSize() >= this.minValidPoint) {
-
-            int peak = tline.validSize();
-            int minTheta = t - thetaRange;
-            int maxTheta = t + thetaRange;
-            int minRho = r - rhoRange;
-            int maxRho = r + rhoRange;
-            minTheta = minTheta < 0 ? 0 : minTheta;
-            maxTheta = maxTheta > thetaSize - 1 ? thetaSize - 1 : maxTheta;
-            minRho = minRho < 0 ? 0 : minRho;
-            maxRho = maxRho > rhoSize - 1 ? rhoSize - 1 : maxRho;
-
-            // Check that this peak is indeed the local maxima 
-            for (int dt = minTheta; dt <= maxTheta; dt++) {
-              for (int dr = minRho; dr <= maxRho; dr++) {
-                if (dt < 0) {
-                  dt = dt + thetaSize;
-                } else if (dt >= thetaSize) {
-                  dt = dt - thetaSize;
-                }
-                if (houghArray[dt][dr].validSize() > peak) {
-                  // found a bigger point nearby, skip 
-                  continue loop;
-                }
-              }
-            }
-
-            mvObjs.add(tline);
-            houghArray[t][r] = new HoughLine((float) (t * thetaStep), (float) (r * rhoStep));
-            clearAllPoint(tline);
-          }
-        }
-      }
-    }
-  }
-
-  public void clearAllPoint(HoughLine tline) {
+  public void clearAllPoint(LineObject tline) {
 
     for (HoughFrame tFrame : tline.frameList) {
       ArrayList<HoughtPoint> tPoints = (ArrayList<HoughtPoint>) tFrame.pointList;
@@ -311,6 +227,7 @@ public class HoughTransform {
       colors[i] = new Color(random.nextInt(256), random.nextInt(256), random.nextInt(256));
     }
 
+//    BufferedImage image = new BufferedImage(imgWidth*2, imgHeight*2, BufferedImage.TYPE_INT_ARGB);
     BufferedImage image = new BufferedImage(imgWidth, imgHeight, BufferedImage.TYPE_INT_ARGB);
     Graphics2D g2d = image.createGraphics();
     BasicStroke bs = new BasicStroke(2);
@@ -318,6 +235,8 @@ public class HoughTransform {
     BasicStroke bs3 = new BasicStroke(7);
     Font font1 = new Font("Times New Roman", Font.BOLD, 30);
     Font font2 = new Font("Times New Roman", Font.BOLD, 12);
+    g2d.translate(0, imgHeight);
+    g2d.scale(1, -1);
     g2d.setBackground(Color.WHITE);
     g2d.fillRect(0, 0, imgWidth, imgHeight);
     g2d.setStroke(bs);
@@ -328,7 +247,7 @@ public class HoughTransform {
     int pointSize2 = 6;
 
     int j = 0;
-    for (HoughLine mvObj : mvObjs) {
+    for (LineObject mvObj : mvObjs) {
 
       if (mvObj.pointNumber < validLineMinPoint) {
         continue;
@@ -370,6 +289,8 @@ public class HoughTransform {
       String debugStr = String.format("line%02d: number=%3d, theta=%6.2f Deg, theta=%4.2f arc, theta=%6.2f, rho=%10.5f, rho=%10.5f, lastRho=%10.5f, lastRho=%10.5f",
               j + 1, mvObj.pointNumber, mvObj.theta * 180 / Math.PI, mvObj.theta, mvObj.theta / thetaStep, mvObj.rho / rhoStep, mvObj.rho, mvObj.lastRho / rhoStep, mvObj.lastRho);
       System.out.println(debugStr);
+      mvObj.updateThetaRho();
+      mvObj.printInfo(historyOT1s);
 
       j++;
     }
@@ -415,10 +336,10 @@ public class HoughTransform {
 //    for (int j = 0; j < 40; j++) {
     for (int j = 0; j < mvObjs.size(); j++) {
 
-      if (!(idxList.contains(new Integer(j)))) {
-        continue;
-      }
-      HoughLine mvObj = mvObjs.get(j);
+//      if (!(idxList.contains(new Integer(j)))) {
+//        continue;
+//      }
+      LineObject mvObj = mvObjs.get(j);
 
       g2d.setColor(colors[j % colorLength]);
 
@@ -466,46 +387,9 @@ public class HoughTransform {
       String debugStr = String.format("line%02d: number=%3d, theta=%10.5f, theta=%10.5f, theta=%10.5f, rho=%10.5f, rho=%10.5f, lastRho=%10.5f, lastRho=%10.5f",
               j, mvObj.pointNumber, mvObj.theta * 180 / Math.PI, mvObj.theta / thetaStep, mvObj.theta, mvObj.rho / rhoStep, mvObj.rho, mvObj.lastRho / rhoStep, mvObj.lastRho);
       System.out.println(debugStr);
-      if (idxList.contains(j)) {
-        mvObj.printInfo(historyOT1s);
-      }
-    }
-
-    try {
-      javax.imageio.ImageIO.write(image, "png", new File(fName));
-    } catch (IOException ex) {
-      Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
-    }
-  }
-
-  /**
-   * Gets the highest value in the hough array
-   */
-  public int getHighestValue() {
-    int max = 0;
-    for (int t = 0; t < thetaSize; t++) {
-      for (int r = 0; r < rhoSize; r++) {
-        if (houghArray[t][r].pointNumber > max) {
-          max = houghArray[t][r].pointNumber;
-        }
-      }
-    }
-    return max;
-  }
-
-  /**
-   * Gets the hough array as an image, in case you want to have a look at it.
-   */
-  public void drawHoughImage(String fName) {
-    int max = getHighestValue();
-    BufferedImage image = new BufferedImage(thetaSize, rhoSize, BufferedImage.TYPE_INT_ARGB);
-    for (int t = 0; t < thetaSize; t++) {
-      for (int r = 0; r < rhoSize; r++) {
-        double value = 255 * ((double) houghArray[t][r].pointNumber) / max;
-        int v = 255 - (int) value;
-        int c = new Color(v, v, v).getRGB();
-        image.setRGB(t, r, c);
-      }
+//      if (idxList.contains(j)) {
+      mvObj.printInfo(historyOT1s);
+//      }
     }
 
     try {

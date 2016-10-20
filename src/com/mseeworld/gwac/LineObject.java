@@ -11,7 +11,7 @@ import java.util.ListIterator;
  *
  * @author xy
  */
-public class HoughLine {
+public class LineObject {
 
   public ArrayList<HoughFrame> frameList;
   public ArrayList<HoughtPoint> pointList;
@@ -50,7 +50,7 @@ public class HoughLine {
    * @param imgXCenter
    * @param imgYCenter
    */
-  public HoughLine(float theta, float rho, float imgXCenter, float imgYCenter, float halfRho) {
+  public LineObject(float theta, float rho, float imgXCenter, float imgYCenter, float halfRho) {
     this.theta = theta;
     this.rho = rho;
     this.imgXCenter = imgXCenter;
@@ -70,12 +70,24 @@ public class HoughLine {
     this.endLine = false;
   }
   
-  public void clearAll() {
-    this.frameList = new ArrayList();
-    this.pointList = new ArrayList();
-    this.pointNumber = 0;
-    this.lastFrameNumber = Integer.MIN_VALUE;
-    this.lastPoint = lastPoint;
+  public LineObject(HoughLine hl) {
+    this.frameList = hl.frameList;
+    this.pointList = hl.pointList;
+    this.pointNumber = hl.pointNumber;
+    this.lastFrameNumber = hl.lastFrameNumber;
+    this.lastPoint = hl.lastPoint;
+    this.theta = hl.theta;
+    this.rho = hl.rho;
+    this.imgXCenter = hl.imgXCenter;
+    this.imgYCenter = hl.imgYCenter;
+    this.halfRho = hl.halfRho;
+    hl.clearAll();
+
+    avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
+    findFirstAndLastPoint();
+    boolean flag = this.firstPoint.getFrameNumber()<=this.lastPoint.getFrameNumber();
+    if(!flag)
+    System.out.println(String.format("%s %5d %5d %5d", this.firstPoint.getFrameNumber()<=this.lastPoint.getFrameNumber(), this.firstPoint.getFrameNumber(), this.lastPoint.getFrameNumber(), this.lastFrameNumber));
   }
 
   public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y) {

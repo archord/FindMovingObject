@@ -13,12 +13,16 @@ public class HoughtPoint implements Comparable, Cloneable {
   private int frameNumber;
   private float theta;
   private float rho;
+  private float ktheta;
+  private float theta2;
+  private float rho2;
   private float x;
   private float y;
-  
-  public void printInfo(){
-    System.out.println(String.format("%d\t%d\t%f\t%f\t%f\t%f", 
-            this.pIdx, this.frameNumber, this.x, this.y, this.theta, this.rho));
+
+  public void printInfo() {
+    System.out.println(String.format("%4d %5d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f",
+            this.pIdx, this.frameNumber, this.x, this.y, this.rho, this.getRho2(),
+            this.theta * 180 / Math.PI, this.ktheta * 180 / Math.PI, this.getTheta2() * 180 / Math.PI));
   }
 
   public HoughtPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y) {
@@ -28,6 +32,25 @@ public class HoughtPoint implements Comparable, Cloneable {
     this.rho = rho;
     this.x = x;
     this.y = y;
+  }
+
+  public void calKtheta(HoughtPoint hp, float imgXCenter, float imgYCenter, float halfRho) {
+
+    double xDelta = hp.x - x;
+    double yDelta = hp.y - y;
+    ktheta = (float) (Math.atan2(yDelta, xDelta));
+
+    if (ktheta < 0) {
+      ktheta += Math.PI;
+    }
+
+    if (ktheta < Math.PI / 2) {
+      theta2 = (float) (ktheta + Math.PI / 2);
+    } else {
+      theta2 = (float) (ktheta - Math.PI / 2);
+    }
+
+    rho2 = (float) ((x - imgXCenter) * Math.cos(theta2) + (y - imgYCenter) * Math.sin(theta2)) + halfRho;
   }
 
   /**
@@ -131,5 +154,47 @@ public class HoughtPoint implements Comparable, Cloneable {
   @Override
   public Object clone() throws CloneNotSupportedException {
     return super.clone();
+  }
+
+  /**
+   * @return the ktheta
+   */
+  public float getKtheta() {
+    return ktheta;
+  }
+
+  /**
+   * @param ktheta the ktheta to set
+   */
+  public void setKtheta(float ktheta) {
+    this.ktheta = ktheta;
+  }
+
+  /**
+   * @return the theta2
+   */
+  public float getTheta2() {
+    return theta2;
+  }
+
+  /**
+   * @param theta2 the theta2 to set
+   */
+  public void setTheta2(float theta2) {
+    this.theta2 = theta2;
+  }
+
+  /**
+   * @return the rho2
+   */
+  public float getRho2() {
+    return rho2;
+  }
+
+  /**
+   * @param rho2 the rho2 to set
+   */
+  public void setRho2(float rho2) {
+    this.rho2 = rho2;
   }
 }
