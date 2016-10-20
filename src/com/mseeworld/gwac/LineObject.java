@@ -70,21 +70,20 @@ public class LineObject {
 
     this.endLine = false;
   }
-  
+
   public void cloneLine(HoughLine hl) {
     this.frameList = hl.frameList;
     this.pointList = hl.pointList;
     this.pointNumber = hl.pointNumber;
     this.lastFrameNumber = hl.lastFrameNumber;
     this.lastPoint = hl.lastPoint;
-    this.lastRho = hl.lastRho;
     hl.clearAll();
 
     avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
     findFirstAndLastPoint();
-    boolean flag = this.firstPoint.getFrameNumber()<=this.lastPoint.getFrameNumber();
-    if(!flag)
-    System.out.println(String.format("%s %5d %5d %5d", this.firstPoint.getFrameNumber()<=this.lastPoint.getFrameNumber(), this.firstPoint.getFrameNumber(), this.lastPoint.getFrameNumber(), this.lastFrameNumber));
+
+    updateThetaRho();
+    calculateSpeed();
   }
 
   public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y) {
@@ -116,6 +115,9 @@ public class LineObject {
 
     avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
     findFirstAndLastPoint();
+
+    updateThetaRho();
+    calculateSpeed();
   }
 
   public boolean isEndLine(int frameNumber) {
@@ -125,68 +127,7 @@ public class LineObject {
     return endLine;
   }
 
-  /**
-   *
-   * @param ot1
-   * @param maxDistance 新目标与直线最后一个点的距离不超过maxDpListstance
-   * @return
-   */
-  public boolean matchLastPoint1(OT1 ot1, float maxDistance) {
-    boolean flag = true;
-    if (this.pointNumber > 0) {
-      double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
-      flag = distance < maxDistance;
-    }
-    return flag;
-  }
-  
   public boolean matchLastPoint(OT1 ot1, float maxDistance) {
-    boolean flag = true;
-    if (this.pointNumber > 0) {
-      if (this.pointNumber == 1) {
-        HoughtPoint tPoint = this.pointList.get(0);
-        lastPoint = tPoint;
-      } else if (this.frameList.size() == 1) {
-        HoughFrame tframe = this.frameList.get(0);
-        HoughtPoint minPoint, maxPoint;
-        if (Math.abs(tframe.deltaX) > Math.abs(tframe.deltaY)) {
-          maxPoint = tframe.maxX;
-          minPoint = tframe.minX;
-        } else {
-          maxPoint = tframe.maxY;
-          minPoint = tframe.minY;
-        }
-        double distance1 = ot1.distance(minPoint.getX(), minPoint.getY());
-        double distance2 = ot1.distance(maxPoint.getX(), maxPoint.getY());
-        lastPoint = distance1 < distance2 ? minPoint : maxPoint;
-      } else {
-        HoughFrame lastFrame = this.frameList.get(this.frameList.size() - 1);
-        if (lastFrame.pointList.size() == 1) {
-          HoughtPoint tPoint = lastFrame.pointList.get(0);
-          lastPoint = tPoint;
-        } else {
-          HoughFrame tframe = lastFrame;
-          HoughtPoint minPoint, maxPoint;
-          if (Math.abs(tframe.deltaX) > Math.abs(tframe.deltaY)) {
-            maxPoint = tframe.maxX;
-            minPoint = tframe.minX;
-          } else {
-            maxPoint = tframe.maxY;
-            minPoint = tframe.minY;
-          }
-          double distance1 = ot1.distance(minPoint.getX(), minPoint.getY());
-          double distance2 = ot1.distance(maxPoint.getX(), maxPoint.getY());
-          lastPoint = distance1 < distance2 ? minPoint : maxPoint;
-        }
-      }
-      double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
-      flag = distance < maxDistance;
-    }
-    return flag;
-  }
-
-
-  public boolean matchLastPoint2(OT1 ot1, float maxDistance) {
 
     boolean flag = true;
     if (this.pointNumber > 0) {

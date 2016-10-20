@@ -21,8 +21,6 @@ public class HoughLine {
 
   public float theta;
   public float rho;
-  public float lastRho;
-
 
   /**
    *
@@ -39,7 +37,7 @@ public class HoughLine {
     this.pointNumber = 0;
     this.lastFrameNumber = Integer.MIN_VALUE;
   }
-  
+
   public void clearAll() {
     this.frameList = new ArrayList();
     this.pointList = new ArrayList();
@@ -77,13 +75,12 @@ public class HoughLine {
 
   }
 
-
   /**
    *
    * @param ot1
    * @param maxDistance 新目标与直线最后一个点的距离不超过maxDpListstance
    * @return
-   */  
+   */
   public boolean matchLastPoint(OT1 ot1, float maxDistance) {
     boolean flag = true;
     if (this.pointNumber > 0) {
@@ -92,35 +89,22 @@ public class HoughLine {
         lastPoint = tPoint;
       } else if (this.frameList.size() == 1) {
         HoughFrame tframe = this.frameList.get(0);
-        HoughtPoint minPoint, maxPoint;
-        if (Math.abs(tframe.deltaX) > Math.abs(tframe.deltaY)) {
-          maxPoint = tframe.maxX;
-          minPoint = tframe.minX;
+        if (tframe.frameNumber == ot1.getFrameNumber()) {
+          lastPoint = tframe.findNearestPoint(ot1);
         } else {
-          maxPoint = tframe.maxY;
-          minPoint = tframe.minY;
+          lastPoint = tframe.findLastPoint(ot1);
         }
-        double distance1 = ot1.distance(minPoint.getX(), minPoint.getY());
-        double distance2 = ot1.distance(maxPoint.getX(), maxPoint.getY());
-        lastPoint = distance1 < distance2 ? minPoint : maxPoint;
       } else {
         HoughFrame lastFrame = this.frameList.get(this.frameList.size() - 1);
         if (lastFrame.pointList.size() == 1) {
           HoughtPoint tPoint = lastFrame.pointList.get(0);
           lastPoint = tPoint;
         } else {
-          HoughFrame tframe = lastFrame;
-          HoughtPoint minPoint, maxPoint;
-          if (Math.abs(tframe.deltaX) > Math.abs(tframe.deltaY)) {
-            maxPoint = tframe.maxX;
-            minPoint = tframe.minX;
+          if (lastFrame.frameNumber == ot1.getFrameNumber()) {
+            lastPoint = lastFrame.findNearestPoint(ot1);
           } else {
-            maxPoint = tframe.maxY;
-            minPoint = tframe.minY;
+            lastPoint = lastFrame.findLastPoint(ot1);
           }
-          double distance1 = ot1.distance(minPoint.getX(), minPoint.getY());
-          double distance2 = ot1.distance(maxPoint.getX(), maxPoint.getY());
-          lastPoint = distance1 < distance2 ? minPoint : maxPoint;
         }
       }
       double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
@@ -128,8 +112,6 @@ public class HoughLine {
     }
     return flag;
   }
-
-
 
   public void removePoint(HoughtPoint hp) {
 
@@ -186,7 +168,6 @@ public class HoughLine {
       }
     }
   }
-
 
   public void removeAll() {
 

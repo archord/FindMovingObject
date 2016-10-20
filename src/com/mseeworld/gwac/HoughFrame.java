@@ -38,6 +38,44 @@ public class HoughFrame {
     maxY = hp;
   }
 
+  /**
+   * 当ot1的帧编号与直线最后一帧的帧编号相同时，找两端的点比较距离不准确，而应该找最近的点来比较
+   * @param ot1
+   * @return 
+   */
+  public HoughtPoint findNearestPoint(OT1 ot1) {
+
+    HoughtPoint nearest = null;
+    double distance = Double.MAX_VALUE;
+    for (HoughtPoint tpoint : this.pointList) {
+      double tDist = ot1.distance(tpoint.getX(), tpoint.getY());
+      if (tDist < distance) {
+        distance = tDist;
+        nearest = tpoint;
+      }
+    }
+    return nearest;
+  }
+    /**
+   * 当ot1的帧编号与直线最后一帧的帧编号不同时，可直接与最后一帧中的最小值和最大值比较
+   * @param ot1
+   * @return 
+   */
+  public HoughtPoint findLastPoint(OT1 ot1) {
+    HoughtPoint minPoint, maxPoint, lastPoint;
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      maxPoint = maxX;
+      minPoint = minX;
+    } else {
+      maxPoint = maxY;
+      minPoint = minY;
+    }
+    double distance1 = ot1.distance(minPoint.getX(), minPoint.getY());
+    double distance2 = ot1.distance(maxPoint.getX(), maxPoint.getY());
+    lastPoint = distance1 < distance2 ? minPoint : maxPoint;
+    return lastPoint;
+  }
+
   public final void addPoint(HoughtPoint hp) {
     this.pointList.add(hp);
     findMinAndMaxXY(hp);
