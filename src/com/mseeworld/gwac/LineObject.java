@@ -4,6 +4,7 @@
 package com.mseeworld.gwac;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -86,8 +87,8 @@ public class LineObject {
     calculateSpeed();
   }
 
-  public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y) {
-    this.addPoint(new HoughtPoint(pIdx, frameNumber, theta, rho, x, y));
+  public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y, Date dateUtc) {
+    this.addPoint(new HoughtPoint(pIdx, frameNumber, theta, rho, x, y, dateUtc));
   }
 
   /**
@@ -140,6 +141,55 @@ public class LineObject {
       }
       flag = (distance < maxDistance) && deltaFlag;
     }
+    return flag;
+  }
+
+  public boolean matchLastPoint2(OT1 ot1, float maxDistance) {
+
+    boolean distFlag = true;
+    if (this.frameList.size() == 1) {
+      HoughFrame tframe = this.frameList.get(0);
+      if (tframe.frameNumber == ot1.getFrameNumber()) {
+        lastPoint = tframe.findNearestPoint(ot1);
+      } else {
+        lastPoint = tframe.findLastPoint(ot1);
+      }
+    } else {
+      HoughFrame lastFrame = this.frameList.get(this.frameList.size() - 1);
+      if (lastFrame.pointList.size() == 1) {
+        HoughtPoint tPoint = lastFrame.pointList.get(0);
+        lastPoint = tPoint;
+      } else {
+        if (lastFrame.frameNumber == ot1.getFrameNumber()) {
+          lastPoint = lastFrame.findNearestPoint(ot1);
+        } else {
+          lastPoint = lastFrame.findLastPoint(ot1);
+          //*************************用直线的delta来计算?
+//          lastPoint = lastFrame.findLastPointUsingDelta(ot1, this.deltaX, this.deltaY);
+        }
+      }
+    }
+    double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
+    distFlag = distance < maxDistance;
+
+    boolean deltaFlag = true;
+    if (this.frameList.size() >= 2) {
+      float xDelta = lastPoint.getX() - ot1.getX();
+      float yDelta = lastPoint.getY() - ot1.getY();
+      deltaFlag = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
+    }
+
+    boolean speedFlag = true;
+    if (this.frameList.size() >= 3 && avgFramePointNumber < 2) {
+      float xDelta = ot1.getX() - lastPoint.getX();
+      float yDelta = ot1.getY() - lastPoint.getY();
+      int deltaTime = ot1.getFrameNumber() - lastPoint.getFrameNumber();
+//      long deltaTime = ot1.getDate().getTime() - lastPoint.getDateUtc().getTime();
+//      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < this.speedX * 0.5) && (Math.abs(yDelta - this.speedY * deltaTime) < this.speedY * 0.5);
+        speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
+    }
+
+    boolean flag = distFlag & deltaFlag & speedFlag;
     return flag;
   }
 
@@ -200,6 +250,7 @@ public class LineObject {
       float tdeltaX = lastPoint.getX() - lastPoint2.getX();
       float tdeltaY = lastPoint.getY() - lastPoint2.getY();
       int deltaTime = lastPoint.getFrameNumber() - lastPoint2.getFrameNumber();
+//      long deltaTime = lastPoint.getDateUtc().getTime() - lastPoint2.getDateUtc().getTime();
       this.speedX = tdeltaX / deltaTime;
       this.speedY = tdeltaY / deltaTime;
     } else {
@@ -451,10 +502,13 @@ public class LineObject {
 
   public void printInfo(ArrayList<OT1> historyOT1s) {
 
+    int i = 1;
     for (HoughFrame tFrame : frameList) {
+      System.out.println(String.format("frame%03d, %4d, %2d", i, tFrame.frameNumber, tFrame.pointList.size()));
       for (HoughtPoint tPoint : tFrame.pointList) {
         tPoint.printInfo();
       }
+      i++;
     }
   }
 

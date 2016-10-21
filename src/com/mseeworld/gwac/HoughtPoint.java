@@ -3,6 +3,8 @@
  */
 package com.mseeworld.gwac;
 
+import java.util.Date;
+
 /**
  *
  * @author xy
@@ -18,6 +20,7 @@ public class HoughtPoint implements Comparable, Cloneable {
   private float rho2;
   private float x;
   private float y;
+  private Date dateUtc;
 
   public void printInfo() {
     System.out.println(String.format("%4d %5d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f",
@@ -25,13 +28,14 @@ public class HoughtPoint implements Comparable, Cloneable {
             this.theta * 180 / Math.PI, this.ktheta * 180 / Math.PI, this.getTheta2() * 180 / Math.PI));
   }
 
-  public HoughtPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y) {
+  public HoughtPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y, Date dateUtc) {
     this.pIdx = pIdx;
     this.frameNumber = frameNumber;
     this.theta = theta;
     this.rho = rho;
     this.x = x;
     this.y = y;
+    this.dateUtc = dateUtc;
   }
 
   public void calKtheta(HoughtPoint hp, float imgXCenter, float imgYCenter, float halfRho) {
@@ -196,5 +200,19 @@ public class HoughtPoint implements Comparable, Cloneable {
    */
   public void setRho2(float rho2) {
     this.rho2 = rho2;
+  }
+
+  /**
+   * @return the dateUtc
+   */
+  public Date getDateUtc() {
+    return dateUtc;
+  }
+
+  /**
+   * @param dateUtc the dateUtc to set
+   */
+  public void setDateUtc(Date dateUtc) {
+    this.dateUtc = dateUtc;
   }
 }

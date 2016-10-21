@@ -146,7 +146,7 @@ public class HoughTransform {
       tline.removeOldFrame(curNumber - this.maxHoughFrameNunmber);
 
       if (tline.matchLastPoint(ot1, maxDistance)) {
-        tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr * rhoStep), ot1.getX(), ot1.getY());
+        tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr * rhoStep), ot1.getX(), ot1.getY(), ot1.getDate());
         if (tline.validSize() >= this.minValidPoint) {
           LineObject lineObj = new LineObject((float) (t * thetaStep), (float) (r * rhoStep), imgXCenter, imgYCenter, (float) halfRho);
           lineObj.cloneLine(tline);
@@ -174,9 +174,9 @@ public class HoughTransform {
 
         double trho = ((ot1.getX() - imgXCenter) * tmo.cosTheta + (ot1.getY() - imgYCenter) * tmo.sinTheta + halfRho); // / rhoStep
         if ((Math.abs(trho - tmo.lastRho) < rhoErrorTimes * this.rhoStep)) {  // 范围是不是太大  this.rhoStep
-          boolean matchLastPoint = tmo.matchLastPoint(ot1, maxDistance);
+          boolean matchLastPoint = tmo.matchLastPoint2(ot1, maxDistance);
           if (matchLastPoint) {
-            tmo.addPoint(numOT1s - 1, ot1.getFrameNumber(), tmo.theta, (float) (trho), ot1.getX(), ot1.getY());
+            tmo.addPoint(numOT1s - 1, ot1.getFrameNumber(), tmo.theta, (float) (trho), ot1.getX(), ot1.getY(), ot1.getDate());
             findLine = true;
             break;
           }
@@ -218,8 +218,8 @@ public class HoughTransform {
     Color colors[] = new Color[colorLength];
     Random random = new Random();
     for (int i = 0; i < colorLength; i++) {
-//      colors[i] = new Color(100 + random.nextInt(156), 100 + random.nextInt(156), 100 + random.nextInt(156));
-      colors[i] = new Color(random.nextInt(256), random.nextInt(256), random.nextInt(256));
+      colors[i] = new Color(100 + random.nextInt(156), 100 + random.nextInt(156), 100 + random.nextInt(156));
+//      colors[i] = new Color(random.nextInt(256), random.nextInt(256), random.nextInt(256));
     }
 
 //    BufferedImage image = new BufferedImage(imgWidth*2, imgHeight*2, BufferedImage.TYPE_INT_ARGB);
@@ -248,8 +248,6 @@ public class HoughTransform {
         continue;
       }
 
-      g2d.setColor(colors[j % colorLength]);
-
       HoughtPoint firstOT1 = mvObj.firstPoint;
       HoughtPoint lastOT1 = mvObj.lastPoint;
 
@@ -257,7 +255,14 @@ public class HoughTransform {
       int y1 = (int) firstOT1.getY();
       int x2 = (int) lastOT1.getX();
       int y2 = (int) lastOT1.getY();
-      g2d.setStroke(bs);
+
+      if (mvObj.frameList.size() == 1) {
+        g2d.setColor(Color.BLACK);
+        g2d.setStroke(bs3);
+      } else {
+        g2d.setColor(colors[j % colorLength]);
+        g2d.setStroke(bs);
+      }
       g2d.drawLine(x1, y1, x2, y2);
       g2d.setStroke(bs3);
       g2d.drawRect(x1 - pointSize / 2, y1 - pointSize / 2, pointSize, pointSize);
@@ -277,18 +282,40 @@ public class HoughTransform {
         g2d.setColor(Color.BLACK);
         g2d.setFont(font1);
 //        drawStr = "" + (j + 1) + "," + String.format("%.2f", mvObj.theta * 180 / Math.PI);
-        drawStr = "" + (j + 1);
+        drawStr = "" + (j);
         g2d.drawString(drawStr, (int) lastOT1.getX() + pointSize, (int) lastOT1.getY() + pointSize);
       }
 
-      String debugStr = String.format("line%02d: number=%3d, theta=%6.2f Deg, theta=%4.2f arc, theta=%6.2f, rho=%10.5f, rho=%10.5f, lastRho=%10.5f, lastRho=%10.5f",
-              j + 1, mvObj.pointNumber, mvObj.theta * 180 / Math.PI, mvObj.theta, mvObj.theta / thetaStep, mvObj.rho / rhoStep, mvObj.rho, mvObj.lastRho / rhoStep, mvObj.lastRho);
+      String debugStr = String.format("line%03d: theta=%6.2f Deg, theta=%4.2f arc, theta=%6.2f, "
+              + "rho=%10.5f, rho=%10.5f, lastRho=%10.5f, lastRho=%10.5f, pnumber=%3d, fnumber=%3d, avgfNumber=%5.2f",
+              j, mvObj.theta * 180 / Math.PI, mvObj.theta, mvObj.theta / thetaStep,
+              mvObj.rho / rhoStep, mvObj.rho, mvObj.lastRho / rhoStep, mvObj.lastRho,
+              mvObj.pointNumber, mvObj.frameList.size(), mvObj.avgFramePointNumber);
       System.out.println(debugStr);
-      mvObj.updateThetaRho();
-      mvObj.printInfo(historyOT1s);
+//      mvObj.updateThetaRho();
+//      mvObj.printInfo(historyOT1s);
 
       j++;
     }
+
+    int singlePoint = 0;
+    int singleFrame = 0;
+    int multiPoint = 0;
+    for (LineObject mvObj : mvObjs) {
+      if (mvObj.pointNumber < validLineMinPoint) {
+        continue;
+      }
+      if (mvObj.frameList.size() == 1) {
+        singleFrame++;
+      } else {
+        if (mvObj.avgFramePointNumber < 2) {
+          singlePoint++;
+        } else {
+          multiPoint++;
+        }
+      }
+    }
+    System.out.println("singleFrame=" + singleFrame + ", singlePoint=" + singlePoint + ", multiPoint=" + multiPoint);
 
     try {
       javax.imageio.ImageIO.write(image, "png", new File(fName));
@@ -314,6 +341,8 @@ public class HoughTransform {
     BasicStroke bs3 = new BasicStroke(7);
     Font font1 = new Font("Times New Roman", Font.BOLD, 30);
     Font font2 = new Font("Times New Roman", Font.BOLD, 12);
+//    g2d.translate(0, imgHeight);
+//    g2d.scale(1, -1);
     g2d.setBackground(Color.WHITE);
     g2d.fillRect(0, 0, imgWidth, imgHeight);
     g2d.setStroke(bs);
@@ -325,16 +354,20 @@ public class HoughTransform {
     // draw the lines back onto the image 
     int totalLine = 0;
 
-    Integer idxArray[] = {96, 97, 98, 99, 100};
+    Integer idxArray[] = {66, 88};
     ArrayList<Integer> idxList = new ArrayList(Arrays.asList(idxArray));
 
-//    for (int j = 0; j < 40; j++) {
-    for (int j = 0; j < mvObjs.size(); j++) {
+    int j = 0;
+    for (LineObject mvObj : mvObjs) {
 
-//      if (!(idxList.contains(new Integer(j)))) {
-//        continue;
-//      }
-      LineObject mvObj = mvObjs.get(j);
+      if (mvObj.pointNumber < validLineMinPoint) {
+        continue;
+      }
+
+      if (!(idxList.contains(new Integer(j)))) {
+        j++;
+        continue;
+      }
 
       g2d.setColor(colors[j % colorLength]);
 
@@ -379,12 +412,17 @@ public class HoughTransform {
         g2d.drawString(drawStr, (int) lastOT1.getX() + 3 * pointSize, (int) lastOT1.getY() + pointSize);
       }
 
-      String debugStr = String.format("line%02d: number=%3d, theta=%10.5f, theta=%10.5f, theta=%10.5f, rho=%10.5f, rho=%10.5f, lastRho=%10.5f, lastRho=%10.5f",
-              j, mvObj.pointNumber, mvObj.theta * 180 / Math.PI, mvObj.theta / thetaStep, mvObj.theta, mvObj.rho / rhoStep, mvObj.rho, mvObj.lastRho / rhoStep, mvObj.lastRho);
+      String debugStr = String.format("line%03d: theta=%6.2f Deg, theta=%4.2f arc, theta=%6.2f, "
+              + "rho=%10.5f, rho=%10.5f, lastRho=%10.5f, lastRho=%10.5f, pnumber=%3d, fnumber=%3d, avgfNumber=%5.2f",
+              j, mvObj.theta * 180 / Math.PI, mvObj.theta, mvObj.theta / thetaStep,
+              mvObj.rho / rhoStep, mvObj.rho, mvObj.lastRho / rhoStep, mvObj.lastRho,
+              mvObj.pointNumber, mvObj.frameList.size(), mvObj.avgFramePointNumber);
       System.out.println(debugStr);
-//      if (idxList.contains(j)) {
-      mvObj.printInfo(historyOT1s);
-//      }
+      if (idxList.contains(j)) {
+        mvObj.printInfo(historyOT1s);
+      }
+
+      j++;
     }
 
     try {

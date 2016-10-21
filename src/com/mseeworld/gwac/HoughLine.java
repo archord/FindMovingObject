@@ -4,6 +4,7 @@
 package com.mseeworld.gwac;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -46,8 +47,8 @@ public class HoughLine {
     this.lastPoint = null;
   }
 
-  public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y) {
-    this.addPoint(new HoughtPoint(pIdx, frameNumber, theta, rho, x, y));
+  public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y, Date dateUtc) {
+    this.addPoint(new HoughtPoint(pIdx, frameNumber, theta, rho, x, y, dateUtc));
   }
 
   /**
