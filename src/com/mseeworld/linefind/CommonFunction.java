@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.mseeworld.gwac;
+package com.mseeworld.linefind;
 
 import java.text.DecimalFormat;
 import java.text.ParseException;
