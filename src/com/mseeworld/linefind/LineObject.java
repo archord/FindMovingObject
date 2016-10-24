@@ -72,6 +72,42 @@ public class LineObject {
     this.endLine = false;
   }
 
+  /**
+   * 在判定直线结束后，对直线进行分析
+   */
+  public void analysis() {
+    if (avgFramePointNumber > 2) {
+      for (int i = 0; i < this.frameList.size(); i++) {
+        HoughFrame tframe = this.frameList.get(i);
+        if (tframe.pointList.size() <= 2) {
+          this.frameList.remove(i);
+          this.pointNumber -= tframe.pointList.size();
+          for (HoughtPoint tpoint : tframe.pointList) {
+            this.pointList.remove(tpoint);
+          }
+          i--;
+        }
+      }
+    }
+  }
+
+  public void calAllSpeed() {
+    int i = 0;
+    for (HoughtPoint tp : this.pointList) {
+      if (i > 0) {
+        HoughtPoint apoint = pointList.get(i - 1);
+        if (tp.getFrameNumber() == apoint.getFrameNumber()) {
+          if (i - 2 < 0) {
+            continue;
+          }
+          apoint = pointList.get(i - 2);
+        }
+        tp.calSpeed(apoint);
+      }
+      i++;
+    }
+  }
+
   public void cloneLine(HoughLine hl) {
     this.frameList = hl.frameList;
     this.pointList = hl.pointList;
@@ -123,6 +159,9 @@ public class LineObject {
 
   public boolean isEndLine(int frameNumber) {
     if (!endLine && lastFrameNumber < frameNumber) {
+      this.analysis();
+      this.avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
+      this.findFirstAndLastPoint();
       endLine = true;
     }
     return endLine;
@@ -135,8 +174,8 @@ public class LineObject {
       double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
       boolean deltaFlag = true;
       if (this.frameList.size() >= 2) {
-        float xDelta = lastPoint.getX() - ot1.getX();
-        float yDelta = lastPoint.getY() - ot1.getY();
+        float xDelta = ot1.getX() - lastPoint.getX();
+        float yDelta = ot1.getY() - lastPoint.getY();
         deltaFlag = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
       }
       flag = (distance < maxDistance) && deltaFlag;
@@ -174,8 +213,8 @@ public class LineObject {
 
     boolean deltaFlag = true;
     if (this.frameList.size() >= 2) {
-      float xDelta = lastPoint.getX() - ot1.getX();
-      float yDelta = lastPoint.getY() - ot1.getY();
+      float xDelta = ot1.getX() - lastPoint.getX();
+      float yDelta = ot1.getY() - lastPoint.getY();
       deltaFlag = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
     }
 
@@ -183,10 +222,15 @@ public class LineObject {
     if (this.frameList.size() >= 3 && avgFramePointNumber < 2) {
       float xDelta = ot1.getX() - lastPoint.getX();
       float yDelta = ot1.getY() - lastPoint.getY();
-      int deltaTime = ot1.getFrameNumber() - lastPoint.getFrameNumber();
-//      long deltaTime = ot1.getDate().getTime() - lastPoint.getDateUtc().getTime();
+//      int deltaTime = ot1.getFrameNumber() - lastPoint.getFrameNumber();
+      long deltaTime = ot1.getDate().getTime() - lastPoint.getDateUtc().getTime();
 //      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < this.speedX * 0.5) && (Math.abs(yDelta - this.speedY * deltaTime) < this.speedY * 0.5);
-        speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
+      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
+
+//      lastPoint.setPreX(lastPoint.getX() + this.speedX * deltaTime);
+//      lastPoint.setPreY(lastPoint.getY() + this.speedY * deltaTime);
+//      lastPoint.setPreDeltaX(lastPoint.getPreX() - ot1.getX());
+//      lastPoint.setPreDeltaY(lastPoint.getPreY() - ot1.getY());
     }
 
     boolean flag = distFlag & deltaFlag & speedFlag;
@@ -209,8 +253,8 @@ public class LineObject {
       double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
       flag = distance < maxDistance;
       if (this.frameList.size() == 2) {
-        float xDelta = lastPoint.getX() - ot1.getX();
-        float yDelta = lastPoint.getY() - ot1.getY();
+        float xDelta = ot1.getX() - lastPoint.getX();
+        float yDelta = ot1.getY() - lastPoint.getY();
         deltaFlag = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
       }
     } else {
@@ -249,10 +293,13 @@ public class LineObject {
       HoughtPoint lastPoint2 = pointList.get(this.pointNumber - 2);
       float tdeltaX = lastPoint.getX() - lastPoint2.getX();
       float tdeltaY = lastPoint.getY() - lastPoint2.getY();
-      int deltaTime = lastPoint.getFrameNumber() - lastPoint2.getFrameNumber();
-//      long deltaTime = lastPoint.getDateUtc().getTime() - lastPoint2.getDateUtc().getTime();
+//      int deltaTime = lastPoint.getFrameNumber() - lastPoint2.getFrameNumber();
+      long deltaTime = lastPoint.getDateUtc().getTime() - lastPoint2.getDateUtc().getTime();
       this.speedX = tdeltaX / deltaTime;
       this.speedY = tdeltaY / deltaTime;
+
+//      lastPoint.setxSpeedt(speedX);
+//      lastPoint.setySpeedt(speedY);
     } else {
       if (this.frameList.size() >= 2) {
         HoughFrame lastFrame = this.frameList.get(this.frameList.size() - 1);
@@ -325,8 +372,10 @@ public class LineObject {
         lfMinPoint = lastFrame.minX;
       }
 
-      deltaX = ffMinPoint.getX() - lfMinPoint.getX();
-      deltaY = ffMinPoint.getY() - lfMinPoint.getY();
+      deltaX = lfMinPoint.getX() - ffMinPoint.getX();
+      deltaY = lfMinPoint.getY() - ffMinPoint.getY();
+//      deltaX = ffMinPoint.getX() - lfMinPoint.getX();
+//      deltaY = ffMinPoint.getY() - lfMinPoint.getY();
     } else {
       HoughFrame firstFrame = frameList.get(0);
       deltaX = firstFrame.deltaX;
@@ -407,7 +456,7 @@ public class LineObject {
      *
      * @param p1 比较点
      * @param p2 被比较点
-     * @return 1:p1排在p2前，-1:p2排在p1前
+     * @return 1:p1排在p2前，-1:p1排在p2后
      */
     @Override
     public int compare(HoughtPoint p1, HoughtPoint p2) {
@@ -508,6 +557,15 @@ public class LineObject {
       for (HoughtPoint tPoint : tFrame.pointList) {
         tPoint.printInfo();
       }
+      i++;
+    }
+  }
+
+  public void printInfo2(ArrayList<OT1> historyOT1s) {
+
+    int i = 0;
+    for (HoughtPoint tPoint : pointList) {
+      System.out.print(tPoint.getAllInfo());;
       i++;
     }
   }

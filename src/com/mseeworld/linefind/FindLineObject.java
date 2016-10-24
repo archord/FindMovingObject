@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Scanner;
 
 /**
  *
@@ -46,7 +47,7 @@ public class FindLineObject {
 
 //    String[] dates = {"151218-2-34","151218-3-5", "151218-3-36", "151218-6-12",
 //      "151218-6-13", "151218-7-15", "151218-8-15", "151218-9-21", "151218-11-34"};
-    String[] dates = {"151218-2-34"}; //debug2line  151218-2-34
+    String[] dates = {"debug-line-114-120"}; //debug2line  151218-2-34 debug-line-114-120
 
     for (String tname : dates) {
       ot1list.clear();
@@ -80,6 +81,7 @@ public class FindLineObject {
 
       ht.drawPoint(outImage);
 //      ht.drawHoughImage(houghImage);
+//      ht.saveLine(outPath);
     }
   }
 
@@ -95,6 +97,9 @@ public class FindLineObject {
       int tline2 = 0;
       //2318.9	381.724	170.284	4.01298	2015/12/18 18:25:28	10.7607	1777	34	1626.55	2273.18
       while ((tempString = reader.readLine()) != null) {
+        if(tempString.isEmpty()){
+          continue;
+        }
         String[] tstr = tempString.split("\t");
         float x = Float.parseFloat(tstr[0]);
         float y = Float.parseFloat(tstr[1]);  //1

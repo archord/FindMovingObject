@@ -9,6 +9,8 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -204,7 +206,7 @@ public class HoughTransform {
       for (HoughtPoint tPoint : tPoints) {
 //      System.out.println(String.format("target %5d %5d", tPoint.getpIdx(), ot1.getFrameNumber()));
         for (int t = 0; t < thetaSize; t++) {
-          int r = (int) ((((tPoint.getX() - imgXCenter) * cosCache[t]) + ((tPoint.getY() - imgYCenter) * sinCache[t]) + halfRho) / rhoStep);
+          int r = Math.round((float) ((((tPoint.getX() - imgXCenter) * cosCache[t]) + ((tPoint.getY() - imgYCenter) * sinCache[t]) + halfRho) / rhoStep));
           HoughLine tline2 = houghArray[t][r];
           tline2.removePoint(tPoint);
         }
@@ -230,8 +232,8 @@ public class HoughTransform {
     BasicStroke bs3 = new BasicStroke(7);
     Font font1 = new Font("Times New Roman", Font.BOLD, 30);
     Font font2 = new Font("Times New Roman", Font.BOLD, 12);
-    g2d.translate(0, imgHeight);
-    g2d.scale(1, -1);
+//    g2d.translate(0, imgHeight);
+//    g2d.scale(1, -1);
     g2d.setBackground(Color.WHITE);
     g2d.fillRect(0, 0, imgWidth, imgHeight);
     g2d.setStroke(bs);
@@ -241,13 +243,24 @@ public class HoughTransform {
     int pointSize = 12;
     int pointSize2 = 6;
 
+//    Integer idxArray[] = {14, 16, 60, 99, 100};
+//    Integer idxArray[] = {13, 15, 59, 98, 99};
+    Integer idxArray[] = {114, 120};
+    ArrayList<Integer> idxList = new ArrayList(Arrays.asList(idxArray));
+
     int j = 0;
     for (LineObject mvObj : mvObjs) {
 
-      if (mvObj.pointNumber < validLineMinPoint) {
+      // || !(mvObj.avgFramePointNumber>1.1&&mvObj.frameList.size()>1)
+      if (mvObj.pointNumber < validLineMinPoint || mvObj.frameList.size()<=1) {
+        j++;
         continue;
       }
 
+//      if (!(idxList.contains(new Integer(j)))) {
+//        j++;
+//        continue;
+//      }
       HoughtPoint firstOT1 = mvObj.firstPoint;
       HoughtPoint lastOT1 = mvObj.lastPoint;
 
@@ -278,13 +291,13 @@ public class HoughTransform {
           int y = (int) (tPoint.getY() - pointSize2 / 2);
           g2d.drawRect(x, y, pointSize2, pointSize2);
         }
-
-        g2d.setColor(Color.BLACK);
-        g2d.setFont(font1);
-//        drawStr = "" + (j + 1) + "," + String.format("%.2f", mvObj.theta * 180 / Math.PI);
-        drawStr = "" + (j);
-        g2d.drawString(drawStr, (int) lastOT1.getX() + pointSize, (int) lastOT1.getY() + pointSize);
       }
+
+      g2d.setColor(Color.BLACK);
+      g2d.setFont(font1);
+//      drawStr = "" + (j) + "," + (mvObj.lastPoint.getFrameNumber());
+      drawStr = "" + (j);
+      g2d.drawString(drawStr, (int) lastOT1.getX() + pointSize, (int) lastOT1.getY() + pointSize);
 
       String debugStr = String.format("line%03d: theta=%6.2f Deg, theta=%4.2f arc, theta=%6.2f, "
               + "rho=%10.5f, rho=%10.5f, lastRho=%10.5f, lastRho=%10.5f, pnumber=%3d, fnumber=%3d, avgfNumber=%5.2f",
@@ -293,7 +306,13 @@ public class HoughTransform {
               mvObj.pointNumber, mvObj.frameList.size(), mvObj.avgFramePointNumber);
       System.out.println(debugStr);
 //      mvObj.updateThetaRho();
-//      mvObj.printInfo(historyOT1s);
+//      if(idxList.contains(j)){
+//        System.out.println("frameSize="+mvObj.frameList.size());
+//      }
+      mvObj.calAllSpeed();
+      System.out.println("pIdx, frameNumber, x, y, xDelta, yDelta, fnDelta, timeDelta, xSpeedfn, ySpeedfn, xSpeedt, ySpeedt, preX, preY, preDeltaX, preDeltaY\n");
+      mvObj.printInfo2(historyOT1s);
+//      mvObj.printOT1Info(historyOT1s);
 
       j++;
     }
@@ -308,14 +327,14 @@ public class HoughTransform {
       if (mvObj.frameList.size() == 1) {
         singleFrame++;
       } else {
-        if (mvObj.avgFramePointNumber < 2) {
+        if (mvObj.avgFramePointNumber < 1.2) {
           singlePoint++;
         } else {
           multiPoint++;
         }
       }
     }
-    System.out.println("singleFrame=" + singleFrame + ", singlePoint=" + singlePoint + ", multiPoint=" + multiPoint);
+    System.out.println("totalLine=" + (singleFrame + singlePoint + multiPoint) + ", singleFrame=" + singleFrame + ", singlePoint=" + singlePoint + ", multiPoint=" + multiPoint);
 
     try {
       javax.imageio.ImageIO.write(image, "png", new File(fName));
@@ -432,4 +451,57 @@ public class HoughTransform {
     }
   }
 
+  public void saveLine(String fpath) {
+
+    File root = new File(fpath);
+    if (!root.exists()) {
+      root.delete();
+      root.mkdirs();
+    }
+
+    Integer idxArray[] = {14, 16, 60, 99, 100};
+    ArrayList<Integer> idxList = new ArrayList(Arrays.asList(idxArray));
+
+    int j = 0;
+    for (LineObject line : mvObjs) {
+
+      if (line.pointNumber < validLineMinPoint) {
+        continue;
+      }
+
+      if (!(idxList.contains(new Integer(j)))) {
+        j++;
+        continue;
+      }
+
+      line.calAllSpeed();
+
+      FileOutputStream out = null;
+      try {
+        String fname = fpath + String.format("%03d.txt", j);
+        out = new FileOutputStream(new File(fname));
+        out.write("pIdx, frameNumber, x, y, xDelta, yDelta, fnDelta, timeDelta, xSpeedfn, ySpeedfn, xSpeedt, ySpeedt\n".getBytes());
+        for (HoughtPoint tPoint : line.pointList) {
+          OT1 tp = this.historyOT1s.get(tPoint.getpIdx());
+//              out.write(String.format("%4d, %s, %10.6f, %10.6f, %11.6f, %11.6f, %6.3f\n", 
+//                      tp.number, tp.dateStr, tp.ra, tp.dec, tp.x, tp.y, tp.mag).getBytes());
+//          out.write(String.format("%4d\t%s\t%10.6f\t%10.6f\t%11.6f\t%11.6f\t%6.3f\n",
+//                  tp.getFrameNumber(), tp.getDateStr(), tp.getRa(), tp.getDec(), tp.getX(), tp.getY(), tp.getMag()).getBytes());
+          out.write(tPoint.getAllInfo().getBytes());
+        }
+        out.close();
+      } catch (FileNotFoundException ex) {
+        Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
+      } catch (IOException ex) {
+        Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
+      } finally {
+        try {
+          out.close();
+        } catch (IOException ex) {
+          Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
+        }
+      }
+      j++;
+    }
+  }
 }

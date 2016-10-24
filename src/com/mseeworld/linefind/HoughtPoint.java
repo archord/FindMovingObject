@@ -21,11 +21,52 @@ public class HoughtPoint implements Comparable, Cloneable {
   private float x;
   private float y;
   private Date dateUtc;
+  private float xDelta;
+  private float yDelta;
+  private int fnDelta;
+  private long timeDelta;
+  private float xSpeedfn;
+  private float ySpeedfn;
+  private float xSpeedt;
+  private float ySpeedt;
+  private float preX;
+  private float preY;
+  private float preDeltaX;
+  private float preDeltaY;
+
+  public void calSpeed(HoughtPoint tPoint) {
+    this.xDelta = tPoint.getX() - this.getX();
+    this.yDelta = tPoint.getY() - this.getY();
+    this.fnDelta = tPoint.getFrameNumber() - this.getFrameNumber();
+    this.timeDelta = (tPoint.getDateUtc().getTime() - this.getDateUtc().getTime());
+
+    this.xSpeedfn = xDelta / fnDelta;
+    this.ySpeedfn = yDelta / fnDelta;
+    this.xSpeedt = xDelta / timeDelta;
+    this.ySpeedt = yDelta / timeDelta;
+
+    this.preX = tPoint.x + tPoint.xSpeedt * timeDelta;
+    this.preY = tPoint.y + tPoint.ySpeedt * timeDelta;
+    this.preDeltaX = this.preX - this.x;
+    this.preDeltaY = this.preY - this.y;
+  }
+
+  public void prePos(HoughtPoint tPoint) {
+  }
 
   public void printInfo() {
     System.out.println(String.format("%4d %5d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f",
             this.pIdx, this.frameNumber, this.x, this.y, this.rho, this.getRho2(),
-            this.theta * 180 / Math.PI, this.ktheta * 180 / Math.PI, this.getTheta2() * 180 / Math.PI));
+            this.theta * 180 / Math.PI, this.ktheta * 180 / Math.PI, this.getTheta2() * 180 / Math.PI,
+            this.preX, this.preY, this.preDeltaX, this.preDeltaY));
+  }
+
+  public String getAllInfo() {
+    String tstr = String.format("%4d %5d %8.2f %8.2f %8.2f %8.2f %5d %5d %8.2f %8.2f %8.4f %8.4f %8.2f %8.2f %8.2f %8.2f\n",
+            this.pIdx, this.frameNumber, this.x, this.y, this.xDelta, this.yDelta,
+            this.fnDelta, this.timeDelta, this.xSpeedfn, this.ySpeedfn, this.xSpeedt*1000, this.ySpeedt*1000,
+            this.preX, this.preY, this.preDeltaX, this.preDeltaY);
+    return tstr;
   }
 
   public HoughtPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y, Date dateUtc) {
@@ -214,5 +255,173 @@ public class HoughtPoint implements Comparable, Cloneable {
    */
   public void setDateUtc(Date dateUtc) {
     this.dateUtc = dateUtc;
+  }
+
+  /**
+   * @return the xDelta
+   */
+  public float getxDelta() {
+    return xDelta;
+  }
+
+  /**
+   * @param xDelta the xDelta to set
+   */
+  public void setxDelta(float xDelta) {
+    this.xDelta = xDelta;
+  }
+
+  /**
+   * @return the yDelta
+   */
+  public float getyDelta() {
+    return yDelta;
+  }
+
+  /**
+   * @param yDelta the yDelta to set
+   */
+  public void setyDelta(float yDelta) {
+    this.yDelta = yDelta;
+  }
+
+  /**
+   * @return the fnDelta
+   */
+  public int getFnDelta() {
+    return fnDelta;
+  }
+
+  /**
+   * @param fnDelta the fnDelta to set
+   */
+  public void setFnDelta(int fnDelta) {
+    this.fnDelta = fnDelta;
+  }
+
+  /**
+   * @return the timeDelta
+   */
+  public long getTimeDelta() {
+    return timeDelta;
+  }
+
+  /**
+   * @param timeDelta the timeDelta to set
+   */
+  public void setTimeDelta(long timeDelta) {
+    this.timeDelta = timeDelta;
+  }
+
+  /**
+   * @return the xSpeedfn
+   */
+  public float getxSpeedfn() {
+    return xSpeedfn;
+  }
+
+  /**
+   * @param xSpeedfn the xSpeedfn to set
+   */
+  public void setxSpeedfn(float xSpeedfn) {
+    this.xSpeedfn = xSpeedfn;
+  }
+
+  /**
+   * @return the ySpeedfn
+   */
+  public float getySpeedfn() {
+    return ySpeedfn;
+  }
+
+  /**
+   * @param ySpeedfn the ySpeedfn to set
+   */
+  public void setySpeedfn(float ySpeedfn) {
+    this.ySpeedfn = ySpeedfn;
+  }
+
+  /**
+   * @return the xSpeedt
+   */
+  public float getxSpeedt() {
+    return xSpeedt;
+  }
+
+  /**
+   * @param xSpeedt the xSpeedt to set
+   */
+  public void setxSpeedt(float xSpeedt) {
+    this.xSpeedt = xSpeedt;
+  }
+
+  /**
+   * @return the ySpeedt
+   */
+  public float getySpeedt() {
+    return ySpeedt;
+  }
+
+  /**
+   * @param ySpeedt the ySpeedt to set
+   */
+  public void setySpeedt(float ySpeedt) {
+    this.ySpeedt = ySpeedt;
+  }
+
+  /**
+   * @return the preX
+   */
+  public float getPreX() {
+    return preX;
+  }
+
+  /**
+   * @param preX the preX to set
+   */
+  public void setPreX(float preX) {
+    this.preX = preX;
+  }
+
+  /**
+   * @return the preY
+   */
+  public float getPreY() {
+    return preY;
+  }
+
+  /**
+   * @param preY the preY to set
+   */
+  public void setPreY(float preY) {
+    this.preY = preY;
+  }
+
+  /**
+   * @return the preDeltaX
+   */
+  public float getPreDeltaX() {
+    return preDeltaX;
+  }
+
+  /**
+   * @param preDeltaX the preDeltaX to set
+   */
+  public void setPreDeltaX(float preDeltaX) {
+    this.preDeltaX = preDeltaX;
+  }
+
+  /**
+   * @return the preDeltaY
+   */
+  public float getPreDeltaY() {
+    return preDeltaY;
+  }
+
+  /**
+   * @param preDeltaY the preDeltaY to set
+   */
+  public void setPreDeltaY(float preDeltaY) {
+    this.preDeltaY = preDeltaY;
   }
 }
