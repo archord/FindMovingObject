@@ -225,12 +225,8 @@ public class LineObject {
 //      int deltaTime = ot1.getFrameNumber() - lastPoint.getFrameNumber();
       long deltaTime = ot1.getDate().getTime() - lastPoint.getDateUtc().getTime();
 //      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < this.speedX * 0.5) && (Math.abs(yDelta - this.speedY * deltaTime) < this.speedY * 0.5);
-      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
+//      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
 
-//      lastPoint.setPreX(lastPoint.getX() + this.speedX * deltaTime);
-//      lastPoint.setPreY(lastPoint.getY() + this.speedY * deltaTime);
-//      lastPoint.setPreDeltaX(lastPoint.getPreX() - ot1.getX());
-//      lastPoint.setPreDeltaY(lastPoint.getPreY() - ot1.getY());
     }
 
     boolean flag = distFlag & deltaFlag & speedFlag;
@@ -297,9 +293,6 @@ public class LineObject {
       long deltaTime = lastPoint.getDateUtc().getTime() - lastPoint2.getDateUtc().getTime();
       this.speedX = tdeltaX / deltaTime;
       this.speedY = tdeltaY / deltaTime;
-
-//      lastPoint.setxSpeedt(speedX);
-//      lastPoint.setySpeedt(speedY);
     } else {
       if (this.frameList.size() >= 2) {
         HoughFrame lastFrame = this.frameList.get(this.frameList.size() - 1);
@@ -561,11 +554,11 @@ public class LineObject {
     }
   }
 
-  public void printInfo2(ArrayList<OT1> historyOT1s) {
+  public void printInfo2() {
 
     int i = 0;
     for (HoughtPoint tPoint : pointList) {
-      System.out.print(tPoint.getAllInfo());;
+      System.out.println(tPoint.getAllInfo());
       i++;
     }
   }

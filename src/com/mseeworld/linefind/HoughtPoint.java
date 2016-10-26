@@ -24,7 +24,7 @@ public class HoughtPoint implements Comparable, Cloneable {
   private float xDelta;
   private float yDelta;
   private int fnDelta;
-  private long timeDelta;
+  private float timeDelta;
   private float xSpeedfn;
   private float ySpeedfn;
   private float xSpeedt;
@@ -35,10 +35,10 @@ public class HoughtPoint implements Comparable, Cloneable {
   private float preDeltaY;
 
   public void calSpeed(HoughtPoint tPoint) {
-    this.xDelta = tPoint.getX() - this.getX();
-    this.yDelta = tPoint.getY() - this.getY();
-    this.fnDelta = tPoint.getFrameNumber() - this.getFrameNumber();
-    this.timeDelta = (tPoint.getDateUtc().getTime() - this.getDateUtc().getTime());
+    this.xDelta = this.getX() - tPoint.getX();
+    this.yDelta = this.getY() - tPoint.getY();
+    this.fnDelta = this.getFrameNumber() - tPoint.getFrameNumber();
+    this.timeDelta = (float) ((this.getDateUtc().getTime() - tPoint.getDateUtc().getTime()) * 1.0 / 1000);
 
     this.xSpeedfn = xDelta / fnDelta;
     this.ySpeedfn = yDelta / fnDelta;
@@ -62,9 +62,9 @@ public class HoughtPoint implements Comparable, Cloneable {
   }
 
   public String getAllInfo() {
-    String tstr = String.format("%4d %5d %8.2f %8.2f %8.2f %8.2f %5d %5d %8.2f %8.2f %8.4f %8.4f %8.2f %8.2f %8.2f %8.2f\n",
+    String tstr = String.format("%4d\t%5d\t%8.2f\t%8.2f\t%8.2f\t%8.2f\t%5d\t%8.2f\t%8.4f\t%8.4f\t%8.2f\t%8.2f\t%8.2f\t%8.2f",
             this.pIdx, this.frameNumber, this.x, this.y, this.xDelta, this.yDelta,
-            this.fnDelta, this.timeDelta, this.xSpeedfn, this.ySpeedfn, this.xSpeedt*1000, this.ySpeedt*1000,
+            this.fnDelta, this.timeDelta, this.xSpeedt, this.ySpeedt,
             this.preX, this.preY, this.preDeltaX, this.preDeltaY);
     return tstr;
   }
@@ -302,7 +302,7 @@ public class HoughtPoint implements Comparable, Cloneable {
   /**
    * @return the timeDelta
    */
-  public long getTimeDelta() {
+  public float getTimeDelta() {
     return timeDelta;
   }
 

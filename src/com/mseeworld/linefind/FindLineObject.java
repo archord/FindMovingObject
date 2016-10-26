@@ -3,6 +3,11 @@
  */
 package com.mseeworld.linefind;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -10,7 +15,9 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Scanner;
@@ -47,28 +54,29 @@ public class FindLineObject {
 
 //    String[] dates = {"151218-2-34","151218-3-5", "151218-3-36", "151218-6-12",
 //      "151218-6-13", "151218-7-15", "151218-8-15", "151218-9-21", "151218-11-34"};
-    String[] dates = {"debug-line-114-120"}; //debug2line  151218-2-34 debug-line-114-120
+    //debug2line  151218-2-34 debug-line-114-120 160928-12-5
+    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
+      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
+//    String[] dates = {"160928-12-5"};
 
     for (String tname : dates) {
       ot1list.clear();
 
       HoughTransform ht = new HoughTransform(imgWidth, imgHeight, thetaSize, rhoSize, thetaRange, rhoRange, maxHoughFrameNunmber, minValidPoint, maxDistance, rhoErrorTimes, validLineMinPoint);
 
-      String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\source-list-old\\" + tname + ".txt";
-      String outImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\" + tname + "-outline.png";
+      String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + ".txt";
+      String outImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-outline-all.png";
+      String outImagePoint = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-point-all.png";
       String houghImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\hough.png";
-      String outPath = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\lines2\\";
+      String outPath = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "\\";
 
       getOT1(ot1File);
+//      drawPoint(outImagePoint);
 
       int lastFrameNumber = 0;
       int frameCount = 0;
       int pNum = 0;
       for (OT1 ot1 : ot1list) {
-//        if ((pNum >= 911 && pNum <= 923)) {
-//          System.out.print("pIdx=" + (pNum + ": "));
-//          ot1.printInfo();
-//        }
         if (lastFrameNumber != ot1.getFrameNumber()) {
           lastFrameNumber = ot1.getFrameNumber();
           ht.endFrame();
@@ -79,6 +87,7 @@ public class FindLineObject {
         pNum++;
       }
 
+      ht.endAllFrame();
       ht.drawPoint(outImage);
 //      ht.drawHoughImage(houghImage);
 //      ht.saveLine(outPath);
@@ -91,13 +100,14 @@ public class FindLineObject {
     BufferedReader reader = null;
     try {
       SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+      SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
       reader = new BufferedReader(new FileReader(file));
       String tempString = null;
       int tline = 0;
       int tline2 = 0;
       //2318.9	381.724	170.284	4.01298	2015/12/18 18:25:28	10.7607	1777	34	1626.55	2273.18
       while ((tempString = reader.readLine()) != null) {
-        if(tempString.isEmpty()){
+        if (tempString.isEmpty()) {
           continue;
         }
         String[] tstr = tempString.split("\t");
@@ -111,7 +121,12 @@ public class FindLineObject {
 //        float yTemp = Float.parseFloat(tstr[9]);
         float xTemp = 0;
         float yTemp = 0;
-        Date tdate = sdf.parse(tstr[4]);
+        Date tdate = null;
+        if (tstr[4].length() == "2016/9/28 13:49:37".length()) {
+          tdate = sdf.parse(tstr[4]);
+        } else {
+          tdate = sdf2.parse(tstr[4]);
+        }
 
 //        if (!(x > 2345 && x < 2370 && y > 715 && y < 750)) {
         ot1list.add(new OT1(number, x, y, xTemp, yTemp, ra, dec, mag, tdate, tstr[4]));
@@ -121,7 +136,7 @@ public class FindLineObject {
 //        }
       }
       reader.close();
-      System.out.println("total points:" + tline + ", remove:" + tline2);
+//      System.out.println("total points:" + tline + ", remove:" + tline2);
 
     } catch (IOException e) {
       e.printStackTrace();
@@ -134,6 +149,30 @@ public class FindLineObject {
         } catch (IOException e1) {
         }
       }
+    }
+  }
+
+  public void drawPoint(String fName) {
+
+    BufferedImage image = new BufferedImage(imgWidth, imgHeight, BufferedImage.TYPE_INT_ARGB);
+    Graphics2D g2d = image.createGraphics();
+    BasicStroke bs = new BasicStroke(2);
+    g2d.setBackground(Color.WHITE);
+    g2d.fillRect(0, 0, imgWidth, imgHeight);
+    g2d.setStroke(bs);
+    g2d.setColor(Color.RED);
+    int pointSize2 = 6;
+
+    for (OT1 ot1 : ot1list) {
+      int x = (int) (ot1.getX() - pointSize2 / 2);
+      int y = (int) (ot1.getY() - pointSize2 / 2);
+      g2d.drawRect(x, y, pointSize2, pointSize2);
+    }
+
+    try {
+      javax.imageio.ImageIO.write(image, "png", new File(fName));
+    } catch (IOException ex) {
+      Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
     }
   }
 
