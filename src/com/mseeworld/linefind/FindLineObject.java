@@ -55,20 +55,23 @@ public class FindLineObject {
 //    String[] dates = {"151218-2-34","151218-3-5", "151218-3-36", "151218-6-12",
 //      "151218-6-13", "151218-7-15", "151218-8-15", "151218-9-21", "151218-11-34"};
     //debug2line  151218-2-34 debug-line-114-120 160928-12-5
-    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
-      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
+//    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
+//      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
 //    String[] dates = {"160928-12-5"};
+    String[] dates = {"161128-6-3"};
 
     for (String tname : dates) {
       ot1list.clear();
+      System.out.println("process " + tname);
 
       HoughTransform ht = new HoughTransform(imgWidth, imgHeight, thetaSize, rhoSize, thetaRange, rhoRange, maxHoughFrameNunmber, minValidPoint, maxDistance, rhoErrorTimes, validLineMinPoint);
 
       String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + ".txt";
-      String outImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-outline-all.png";
+      String outImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-outline-all-speed.png";
+      String outImage2 = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-outline-singleframe.png";
       String outImagePoint = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-point-all.png";
       String houghImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\hough.png";
-      String outPath = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "\\";
+      String outPath = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-result\\" + tname + "\\";
 
       getOT1(ot1File);
 //      drawPoint(outImagePoint);
@@ -88,9 +91,10 @@ public class FindLineObject {
       }
 
       ht.endAllFrame();
-      ht.drawPoint(outImage);
-//      ht.drawHoughImage(houghImage);
-//      ht.saveLine(outPath);
+//      ht.saveLine2(outPath);
+
+      DrawObject dObj = new DrawObject(ht);
+      dObj.drawObjsAll(outImage);
     }
   }
 
@@ -105,6 +109,7 @@ public class FindLineObject {
       String tempString = null;
       int tline = 0;
       int tline2 = 0;
+      int tlen = "2016/19/28 13:49:37".length();
       //2318.9	381.724	170.284	4.01298	2015/12/18 18:25:28	10.7607	1777	34	1626.55	2273.18
       while ((tempString = reader.readLine()) != null) {
         if (tempString.isEmpty()) {
@@ -122,7 +127,7 @@ public class FindLineObject {
         float xTemp = 0;
         float yTemp = 0;
         Date tdate = null;
-        if (tstr[4].length() == "2016/9/28 13:49:37".length()) {
+        if (tstr[4].trim().length() == tlen) {
           tdate = sdf.parse(tstr[4]);
         } else {
           tdate = sdf2.parse(tstr[4]);

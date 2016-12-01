@@ -32,6 +32,8 @@ public class LineObject {
   public float rho;
   public float lastRho;
   public float lastTheta;
+  public float lineRho; //根据直线的第一个和最后一个点算的rho
+  public float lineTheta;  //根据直线的第一个和最后一个点算的theta
 
   public float sinTheta;
   public float cosTheta;
@@ -121,6 +123,17 @@ public class LineObject {
 
     updateThetaRho();
     calculateSpeed();
+  }
+
+  public void addLineObject(LineObject lineObj) {
+
+    for (HoughtPoint tp : lineObj.pointList) {
+      this.addPoint(tp);
+    }
+    lineObj.pointList.clear();
+    lineObj.removeAll();
+    lineObj.firstPoint = null;
+    lineObj.lastPoint = null;
   }
 
   public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y, Date dateUtc) {
@@ -225,7 +238,7 @@ public class LineObject {
 //      int deltaTime = ot1.getFrameNumber() - lastPoint.getFrameNumber();
       long deltaTime = ot1.getDate().getTime() - lastPoint.getDateUtc().getTime();
 //      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < this.speedX * 0.5) && (Math.abs(yDelta - this.speedY * deltaTime) < this.speedY * 0.5);
-//      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
+      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
 
     }
 

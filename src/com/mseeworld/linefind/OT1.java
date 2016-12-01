@@ -3,6 +3,7 @@
  */
 package com.mseeworld.linefind;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -207,11 +208,21 @@ public class OT1 implements Comparable, Cloneable {
   public void setyTemp(float yTemp) {
     this.yTemp = yTemp;
   }
-  
+
   //2318.9	381.724	170.284	4.01298	2015/12/18 18:25:28	10.7607	1777	34	1626.55	2273.18
-  public void printInfo(){
-    System.out.println(String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%f\t%f", 
+  public void printInfo() {
+    System.out.println(String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%f\t%f",
             this.x, this.y, this.ra, this.dec, this.dateStr, this.mag, this.frameNumber, this.xTemp, this.yTemp));
   }
-  
+
+  @Override
+  public String toString() {
+    return String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%f\t%f",
+            this.x, this.y, this.ra, this.dec, this.dateStr, this.mag, this.frameNumber, this.xTemp, this.yTemp);
+  }
+
+  public String getStr(int idx, SimpleDateFormat sdf) {
+    return String.format("%4d %4d 0 %s %7.2f %7.2f %8.5f %9.5f",
+            idx, this.frameNumber, sdf.format(date), this.x, this.y, this.ra, this.dec);
+  }
 }
