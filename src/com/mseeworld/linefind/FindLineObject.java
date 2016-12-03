@@ -51,7 +51,7 @@ public class FindLineObject {
     int rhoSize = 100;
     int thetaRange = 36;
     int rhoRange = 10;
-    int maxHoughFrameNunmber = 10;
+    int maxHoughFrameNunmber = 20;
     int validLineMinPoint = 5;
     float maxDistance = 100;
     int minValidPoint = 5;
@@ -152,32 +152,96 @@ public class FindLineObject {
 
   public void fitTest2() {
 
-    String[] dates = {"debug-167-163"};
+//    String[] dates = {"161128-6-3-line1","161128-6-3-line2","161128-6-3-line3"};
+    String[] dates = {"161128-6-3-line4"};
 
     for (String tname : dates) {
       ot1list.clear();
       String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + ".txt";
       getOT1(ot1File);
 
-      WeightedObservedPoints wObsPoints = new WeightedObservedPoints();
-      for (OT1 ot1 : ot1list) {
-        wObsPoints.add(ot1.getX(), ot1.getY());
-      }
+      WeightedObservedPoints objs1 = new WeightedObservedPoints();
+      WeightedObservedPoints objs2 = new WeightedObservedPoints();
+      WeightedObservedPoints objs3 = new WeightedObservedPoints();
       PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
-//      fitter.withMaxIterations(10);
-      final double[] coeff = fitter.fit(wObsPoints.toList());
 
-      for (int i = 0; i < coeff.length; i++) {
-        System.out.println(coeff[i]);
-      }
+      int num = 0;
       for (OT1 ot1 : ot1list) {
-//        double preY = coeff[0] + coeff[1] * ot1.getX() + coeff[2] * ot1.getX() * ot1.getX();
-        double preY = coeff[0] + coeff[1] * ot1.getX();
-        double ydiff = preY - ot1.getY();
-        System.out.println(ot1.getFrameNumber() + ": " + ot1.getX() + "\t" + ot1.getY() + "\t"
-                + preY + "\t" + ydiff);
+        long t = ot1.getDate().getTime();
+        objs1.add(ot1.getX(), ot1.getY());
+        objs2.add(t, ot1.getY());
+        objs3.add(t, ot1.getX());
+        if (num >= 5) {
+          final double[] coeff1 = fitter.fit(objs1.toList());
+          final double[] coeff2 = fitter.fit(objs2.toList());
+          final double[] coeff3 = fitter.fit(objs3.toList());
+          double preY1 = coeff1[0] + coeff1[1] * ot1.getX() + coeff1[2] * ot1.getX() * ot1.getX();
+          double preY2 = coeff2[0] + coeff2[1] * t + coeff2[2] * t * t;
+          double preX1 = coeff3[0] + coeff3[1] * t + coeff3[2] * t * t;
+          double ydiff1 = preY1 - ot1.getY();
+          double ydiff2 = preY2 - ot1.getY();
+          double xdiff1 = preX1 - ot1.getX();
+          if (Math.abs(ydiff1) > 10 || Math.abs(ydiff2) > 10 || Math.abs(xdiff1) > 10) {
+            System.out.println("**********");
+          }
+          String rst = String.format("%5d %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f",
+                  ot1.getFrameNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
+          System.out.println(rst);
+        }
+        num++;
       }
+    }
+  }
 
+  public void fitTest4() {
+
+//    String[] dates = {"161128-6-3-line1","161128-6-3-line2","161128-6-3-line3"};
+    String[] dates = {"161128-6-3-line2"};
+
+    for (String tname : dates) {
+      ot1list.clear();
+      String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + ".txt";
+      getOT1(ot1File);
+
+      WeightedObservedPoints objs1 = new WeightedObservedPoints();
+      WeightedObservedPoints objs2 = new WeightedObservedPoints();
+      WeightedObservedPoints objs3 = new WeightedObservedPoints();
+      PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
+
+      int num = 0;
+      for (OT1 ot1 : ot1list) {
+        long t = ot1.getDate().getTime();
+        if (num >= 5) {
+          final double[] coeff1 = fitter.fit(objs1.toList());
+          final double[] coeff2 = fitter.fit(objs2.toList());
+          final double[] coeff3 = fitter.fit(objs3.toList());
+          double preY1 = coeff1[0] + coeff1[1] * ot1.getX() + coeff1[2] * ot1.getX() * ot1.getX();
+          double preY2 = coeff2[0] + coeff2[1] * t + coeff2[2] * t * t;
+          double preX1 = coeff3[0] + coeff3[1] * t + coeff3[2] * t * t;
+          double ydiff1 = preY1 - ot1.getY();
+          double ydiff2 = preY2 - ot1.getY();
+          double xdiff1 = preX1 - ot1.getX();
+          if (Math.abs(ydiff1) > 10 || Math.abs(ydiff2) > 10 || Math.abs(xdiff1) > 10) {
+            System.out.println("**********");
+            objs1.clear();
+            objs2.clear();
+            objs3.clear();
+            num = 0;
+          } else {
+            objs1.add(ot1.getX(), ot1.getY());
+            objs2.add(t, ot1.getY());
+            objs3.add(t, ot1.getX());
+          }
+          String rst = String.format("%5d %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f",
+                  ot1.getFrameNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
+          System.out.println(rst);
+        } else {
+          objs1.add(ot1.getX(), ot1.getY());
+          objs2.add(t, ot1.getY());
+          objs3.add(t, ot1.getX());
+        }
+        num++;
+      }
     }
   }
 
@@ -233,7 +297,7 @@ public class FindLineObject {
 
 //        if (!(x > 2345 && x < 2370 && y > 715 && y < 750)) {
 //        ot1list.add(new OT1(number, x, y, xTemp, yTemp, ra, dec, mag, tdate, tstr[4]));
-        ot1list.add(new OT1(number, xTemp, yTemp, xTemp, yTemp, ra, dec, mag, tdate, tstr[4]));
+        ot1list.add(new OT1(number, xTemp, yTemp, x, y, ra, dec, mag, tdate, tstr[4]));
         tline++;
 //        } else {
 //          tline2++;

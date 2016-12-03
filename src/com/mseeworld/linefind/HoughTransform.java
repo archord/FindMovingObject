@@ -206,10 +206,11 @@ public class HoughTransform {
     for (LineObject tline : this.mvObjs) {
 
       if (!tline.isEndLine(ot1.getFrameNumber() - this.maxHoughFrameNunmber + 1)) {
-        double preYDiff = Math.abs(ot1.getY() - tline.preNextY(ot1.getX()));
-        if (preYDiff < 10) {  // 范围是不是太大  this.rhoStep
-          boolean matchLastPoint = tline.matchLastPoint2(ot1, maxDistance);
-          if (matchLastPoint) {
+        double preYDiff = Math.abs(ot1.getY() - tline.preNextYByX(ot1.getX()));
+        if (preYDiff < 10) {
+          double preXDiff = Math.abs(ot1.getX() - tline.preNextXByT(ot1.getDate().getTime()));
+          double preYDiff2 = Math.abs(ot1.getY() - tline.preNextYByT(ot1.getDate().getTime()));
+          if (preXDiff < 10 && preYDiff2 < 10) {
             double trho = ((ot1.getX() - imgXCenter) * tline.cosTheta + (ot1.getY() - imgYCenter) * tline.sinTheta + halfRho);
             tline.addPoint(numOT1s - 1, ot1.getFrameNumber(), tline.theta, (float) (trho), ot1.getX(), ot1.getY(), ot1.getDate());
             findLine = true;

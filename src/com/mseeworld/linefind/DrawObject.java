@@ -43,7 +43,8 @@ public class DrawObject {
 
   public void drawObjsAll(String fName) {
 
-//    Integer idxArray[] = {152};
+//    Integer idxArray[] = {14, 16, 19, 20, 6, 10, 23, 40, 43, 47};
+//    Integer idxArray[] = {15,17,21,22,23}; // 14, 16, 19, 20; 6, 10, 23; 40, 43, 47;15,17,21,22,23
     Integer idxArray[] = {};
     idxList = new ArrayList(Arrays.asList(idxArray));
 
@@ -117,8 +118,8 @@ public class DrawObject {
 //        continue;
 //      }
       outNum++;
-      System.out.println("line" + this.drawIdx + ", sigma=" + mvObj.ySigma);
-      mvObj.printPreInfo();
+//      System.out.println("line" + this.drawIdx + ", sigma=" + mvObj.ySigma);
+//      mvObj.printPreInfo();
 
       HoughtPoint firstOT1 = mvObj.firstPoint;
       HoughtPoint lastOT1 = mvObj.lastPoint;
@@ -261,8 +262,8 @@ public class DrawObject {
           g2d.drawRect(x, y, pointSize2, pointSize2);
 
           g2d.setFont(font2);
-          drawStr = "" + tPoint.getpIdx();
-          g2d.drawString(drawStr, (int) x + pointSize, (int) y - pointSize);
+//          drawStr = "" + tPoint.getpIdx();
+//          g2d.drawString(drawStr, (int) x + pointSize, (int) y - pointSize);
         }
       }
       g2d.setColor(Color.BLACK);
@@ -292,7 +293,8 @@ public class DrawObject {
 
   /**
    * 画出所有点的位置图
-   * @param fName 
+   *
+   * @param fName
    */
   public void drawPoint(String fName) {
 
