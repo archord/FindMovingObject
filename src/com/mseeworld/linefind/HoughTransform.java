@@ -156,11 +156,14 @@ public class HoughTransform {
       if (tline.matchLastPoint(ot1, maxDistance)) {
         tline.addPoint(numOT1s - 1, curNumber, (float) (thetaStep * t), (float) (fr * rhoStep), ot1.getX(), ot1.getY(), ot1.getDate());
         if (tline.validSize() >= this.minValidPoint) {
-          LineObject lineObj = new LineObject((float) (t * thetaStep), (float) (r * rhoStep), imgXCenter, imgYCenter, (float) halfRho);
-          lineObj.cloneLine(tline);
-          mvObjs.add(lineObj);
-          clearAllPoint(lineObj);
-          break;
+          double tsigma = tline.lineRegression();
+          if ((tsigma < 2 && tline.validSize() >= this.minValidPoint) || (tline.validSize() >= 10)) {
+            LineObject lineObj = new LineObject((float) (t * thetaStep), (float) (r * rhoStep), imgXCenter, imgYCenter, (float) halfRho);
+            lineObj.cloneLine(tline);
+            mvObjs.add(lineObj);
+            clearAllPoint(lineObj);
+            break;
+          }
         }
       }
     }
@@ -172,7 +175,7 @@ public class HoughTransform {
    *
    * @param ot1
    */
-  public void lineAddPoint(OT1 ot1) {
+  public void lineAddPoint2(OT1 ot1) {
 
     boolean findLine = false;
     int i = 0;
@@ -185,6 +188,30 @@ public class HoughTransform {
           boolean matchLastPoint = tmo.matchLastPoint2(ot1, maxDistance);
           if (matchLastPoint) {
             tmo.addPoint(numOT1s - 1, ot1.getFrameNumber(), tmo.theta, (float) (trho), ot1.getX(), ot1.getY(), ot1.getDate());
+            findLine = true;
+            break;
+          }
+        }
+      }
+    }
+    if (!findLine) {
+      this.houghAddPoint(ot1);
+    }
+  }
+
+  public void lineAddPoint(OT1 ot1) {
+
+    boolean findLine = false;
+    int i = 0;
+    for (LineObject tline : this.mvObjs) {
+
+      if (!tline.isEndLine(ot1.getFrameNumber() - this.maxHoughFrameNunmber + 1)) {
+        double preYDiff = Math.abs(ot1.getY() - tline.preNextY(ot1.getX()));
+        if (preYDiff < 10) {  // 范围是不是太大  this.rhoStep
+          boolean matchLastPoint = tline.matchLastPoint2(ot1, maxDistance);
+          if (matchLastPoint) {
+            double trho = ((ot1.getX() - imgXCenter) * tline.cosTheta + (ot1.getY() - imgYCenter) * tline.sinTheta + halfRho);
+            tline.addPoint(numOT1s - 1, ot1.getFrameNumber(), tline.theta, (float) (trho), ot1.getX(), ot1.getY(), ot1.getDate());
             findLine = true;
             break;
           }

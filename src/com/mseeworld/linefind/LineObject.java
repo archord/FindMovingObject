@@ -7,12 +7,19 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoints;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 /**
  *
  * @author xy
  */
 public class LineObject {
+
+  public WeightedObservedPoints wObsPoints;
+  public PolynomialCurveFitter fitter;
+  public double[] coeff;
 
   public ArrayList<HoughFrame> frameList;
   public ArrayList<HoughtPoint> pointList;
@@ -46,6 +53,8 @@ public class LineObject {
 
   public boolean endLine;
 
+  public double ySigma;
+
   /**
    *
    * @param theta
@@ -72,6 +81,83 @@ public class LineObject {
     this.cosTheta = (float) Math.cos(this.theta);
 
     this.endLine = false;
+
+    wObsPoints = new WeightedObservedPoints();
+    fitter = PolynomialCurveFitter.create(2);
+  }
+
+  public void removeSingularPoint() {
+
+    SimpleRegression reg = new SimpleRegression();
+    int i = 0;
+    for (HoughtPoint ot1 : pointList) {
+      reg.addData(ot1.getX(), ot1.getY());
+//      if (i >= 2) {
+//        break;
+//      }
+//      i++;
+    }
+
+    double sigma = Math.sqrt(reg.getSumSquaredErrors() / (pointList.size() - 1));
+    ySigma = sigma;
+//    double sigma2 = Double.MAX_VALUE;
+//    int idx = 1;
+//    while (sigma < sigma2) {
+////      System.out.println("regression: " + idx + ", sigma=" + sigma);
+//      for (int i = 0; i < pointList.size();) {
+//        HoughtPoint ot1 = pointList.get(i);
+//        float preY = (float) reg.predict(ot1.getX());
+//        double ydiff = preY - ot1.getY();
+//        if ((Math.abs(ydiff) > 2 * sigma)) {
+//          System.out.println(ydiff + "\t" + (Math.abs(ydiff) < 2 * sigma) + "\t" + (Math.abs(ydiff) < 3 * sigma));
+////          pointList.remove(i);
+//          this.removePoint(ot1);
+//          reg.removeData(ot1.getX(), ot1.getY());
+//        } else {
+//          i++;
+//        }
+//      }
+//      sigma2 = sigma;
+//      sigma = Math.sqrt(reg.getSumSquaredErrors() / (pointList.size() - 1));
+//      if (idx > 10) {
+//        System.out.println("regression times: " + idx);
+//        break;
+//      }
+//      idx++;
+//    }
+//    ySigma = sigma;
+
+  }
+
+  public void printPreInfo() {
+    int i = 0;
+    SimpleRegression reg = new SimpleRegression();
+    for (HoughtPoint ot1 : pointList) {
+      reg.addData(ot1.getX(), ot1.getY());
+//      if (i >= 2) {
+//        break;
+//      }
+//      i++;
+    }
+    i = 0;
+    for (HoughtPoint ot1 : pointList) {
+      float preY = (float) reg.predict(ot1.getX());
+      double ydiff = preY - ot1.getY();
+      System.out.println(ot1.getFrameNumber() + ": " + ot1.getX() + "\t" + ot1.getY() + "\t"
+              + preY + "\t" + ydiff + "\t" + (Math.abs(ydiff) < 2 * ySigma) + "\t" + (Math.abs(ydiff) < 3 * ySigma));
+//      if (i >= 2) {
+//        break;
+//      }
+//      i++;
+    }
+  }
+
+  public void evaluate() {
+    SimpleRegression reg = new SimpleRegression();
+    for (HoughtPoint hp : this.pointList) {
+      reg.addData(hp.getX(), hp.getY());
+    }
+
   }
 
   /**
@@ -118,6 +204,11 @@ public class LineObject {
     this.lastPoint = hl.lastPoint;
     hl.clearAll();
 
+    for (HoughtPoint tp : pointList) {
+      wObsPoints.add(tp.getX(), tp.getY());
+    }
+    coeff = fitter.fit(wObsPoints.toList());
+
     avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
     findFirstAndLastPoint();
 
@@ -154,6 +245,9 @@ public class LineObject {
     pointNumber++;
     pointList.add(hp);
 
+    wObsPoints.add(hp.getX(), hp.getY());
+    coeff = fitter.fit(wObsPoints.toList());
+
     if (frameList.isEmpty() || (lastFrameNumber != hp.getFrameNumber())) {
       lastFrameNumber = hp.getFrameNumber();
       HoughFrame hframe = new HoughFrame(hp, hp.getFrameNumber());
@@ -168,6 +262,10 @@ public class LineObject {
 
     updateThetaRho();
     calculateSpeed();
+  }
+
+  public double preNextY(float x) {
+    return coeff[0] + coeff[1] * x + coeff[2] * x * x;
   }
 
   public boolean isEndLine(int frameNumber) {
@@ -238,7 +336,7 @@ public class LineObject {
 //      int deltaTime = ot1.getFrameNumber() - lastPoint.getFrameNumber();
       long deltaTime = ot1.getDate().getTime() - lastPoint.getDateUtc().getTime();
 //      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < this.speedX * 0.5) && (Math.abs(yDelta - this.speedY * deltaTime) < this.speedY * 0.5);
-      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
+//      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
 
     }
 
@@ -389,7 +487,7 @@ public class LineObject {
     }
   }
 
-  public void removePoint(HoughtPoint hp) {
+  public void removePoint1(HoughtPoint hp) {
 
     for (int k = 0; k < this.pointList.size(); k++) {
       if (hp.getpIdx() == pointList.get(k).getpIdx()) {
@@ -423,14 +521,14 @@ public class LineObject {
     }
   }
 
-  public void removeFirstFrame() {
+  public void removeFirstFrame1() {
     HoughFrame firstFrame = frameList.get(0);
     this.pointNumber -= firstFrame.pointList.size();
     firstFrame.removeAll();
     frameList.remove(0);
   }
 
-  public void removeOldFrame(int toFrameNumber) {
+  public void removeOldFrame1(int toFrameNumber) {
 
     while (this.pointList.size() > 0) {
       if (pointList.get(0).getFrameNumber() <= toFrameNumber) {

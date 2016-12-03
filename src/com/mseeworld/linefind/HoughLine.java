@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 /**
  *
@@ -37,6 +38,39 @@ public class HoughLine {
     this.pointList = new ArrayList();
     this.pointNumber = 0;
     this.lastFrameNumber = Integer.MIN_VALUE;
+  }
+
+  public double lineRegression() {
+
+    SimpleRegression reg = new SimpleRegression();
+    for (HoughtPoint ot1 : pointList) {
+      reg.addData(ot1.getX(), ot1.getY());
+    }
+
+    double sigma = Math.sqrt(reg.getSumSquaredErrors() / (pointList.size() - 1));
+    if (sigma > 10) {
+      double sigma2 = Double.MAX_VALUE;
+      while (sigma < sigma2) {
+        for (int i = 0; i < pointList.size();) {
+          HoughtPoint ot1 = pointList.get(i);
+          float preY = (float) reg.predict(ot1.getX());
+          double ydiff = preY - ot1.getY();
+          if ((Math.abs(ydiff) > 1.3 * sigma)) {
+            this.removePoint(ot1);
+            reg.removeData(ot1.getX(), ot1.getY());
+          } else {
+            i++;
+          }
+        }
+        sigma2 = sigma;
+        sigma = Math.sqrt(reg.getSumSquaredErrors() / (pointList.size() - 1));
+        if (sigma < 10) {
+          break;
+        }
+      }
+    }
+
+    return sigma;
   }
 
   public void clearAll() {

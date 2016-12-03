@@ -27,6 +27,7 @@ public class DrawObject {
   private final HoughTransform ht;
   private int drawIdx;
   private ArrayList<Integer> idxList;
+  private int outNum = 0;
 
   public DrawObject(HoughTransform ht) {
 
@@ -42,7 +43,8 @@ public class DrawObject {
 
   public void drawObjsAll(String fName) {
 
-    Integer idxArray[] = {13, 20, 25, 27};
+//    Integer idxArray[] = {152};
+    Integer idxArray[] = {};
     idxList = new ArrayList(Arrays.asList(idxArray));
 
 //    BufferedImage image = new BufferedImage(imgWidth*2, imgHeight*2, BufferedImage.TYPE_INT_ARGB);
@@ -55,8 +57,8 @@ public class DrawObject {
     g2d.drawOval(ht.imgWidth - 40, ht.imgHeight - 40, 20, 20);
 
     drawObjs(ht.mvObjs, g2d);
-//    drawObjs(ht.fastObjs, g2d);
-//    drawObjs(ht.singleFrameObjs, g2d);
+    drawObjs(ht.fastObjs, g2d);
+    drawObjs(ht.singleFrameObjs, g2d);
 
     int singleFrame = ht.singleFrameObjs.size();
     int fastObjNum = ht.fastObjs.size();
@@ -74,7 +76,7 @@ public class DrawObject {
     }
     System.out.println("totalLine=" + (singleFrame + singlePoint + multiPoint + fastObjNum)
             + ", singleFrame=" + singleFrame + ", fastObjNum=" + fastObjNum + ", singlePoint="
-            + singlePoint + ", multiPoint=" + multiPoint);
+            + singlePoint + ", multiPoint=" + multiPoint + ", outNum=" + outNum);
 
     try {
       javax.imageio.ImageIO.write(image, "png", new File(fName));
@@ -96,17 +98,27 @@ public class DrawObject {
 
     for (LineObject mvObj : lineObjs) {
 
-      // || !(mvObj.avgFramePointNumber>1.1&&mvObj.frameList.size()>1)  || mvObj.frameList.size() <= 1   || mvObj.frameList.size() <= 20
+//      if ((mvObj.pointNumber < ht.validLineMinPoint) || !(mvObj.avgFramePointNumber>1.1&&mvObj.frameList.size()>1)  || mvObj.frameList.size() <= 1   || mvObj.frameList.size() <= 20)
 //      if ((mvObj.pointNumber < ht.validLineMinPoint) || (mvObj.avgFramePointNumber < 1.5 && mvObj.frameList.size() < 5)) {
+//      if ((mvObj.pointNumber < ht.validLineMinPoint) || mvObj.frameList.size() <= 10) {
       if ((mvObj.pointNumber < ht.validLineMinPoint)) {
         this.drawIdx++;
         continue;
       }
 
-//      if (!(idxList.contains(new Integer(this.drawIdx)))) {
+      if (!idxList.isEmpty() && !(idxList.contains(new Integer(this.drawIdx)))) {
+        this.drawIdx++;
+        continue;
+      }
+
+//      mvObj.removeSingularPoint();
+//      if (mvObj.ySigma>1) {
 //        this.drawIdx++;
 //        continue;
 //      }
+      outNum++;
+      System.out.println("line" + this.drawIdx + ", sigma=" + mvObj.ySigma);
+      mvObj.printPreInfo();
 
       HoughtPoint firstOT1 = mvObj.firstPoint;
       HoughtPoint lastOT1 = mvObj.lastPoint;
@@ -141,6 +153,8 @@ public class DrawObject {
           int x = (int) (tPoint.getX() - pointSize2 / 2);
           int y = (int) (tPoint.getY() - pointSize2 / 2);
           g2d.drawRect(x, y, pointSize2, pointSize2);
+//          drawStr = "" + (tPoint.getFrameNumber());
+//          g2d.drawString(drawStr, (int) x + pointSize, (int) y + pointSize);
         }
       }
 
@@ -165,8 +179,8 @@ public class DrawObject {
 //      System.out.println("pIdx\t frameNumber\t x\t y\t xDelta\t yDelta\t fnDelta\t timeDelta\t xSpeedfn\t ySpeedt\t preX\t preY\t preDeltaX\t preDeltaY\n");
 //      mvObj.printInfo2();
 //      mvObj.printOT1Info(ht.historyOT1s);
-
       this.drawIdx++;
+
     }
   }
 
@@ -210,7 +224,7 @@ public class DrawObject {
         continue;
       }
 
-//      if (!(idxList.contains(new Integer(j)))) {
+//      if (!idxList.isEmpty() && !(idxList.contains(new Integer(j)))) {
 //        j++;
 //        continue;
 //      }
@@ -267,6 +281,34 @@ public class DrawObject {
 //      }
 
       j++;
+    }
+
+    try {
+      javax.imageio.ImageIO.write(image, "png", new File(fName));
+    } catch (IOException ex) {
+      Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
+    }
+  }
+
+  /**
+   * 画出所有点的位置图
+   * @param fName 
+   */
+  public void drawPoint(String fName) {
+
+    BufferedImage image = new BufferedImage(ht.imgWidth, ht.imgHeight, BufferedImage.TYPE_INT_ARGB);
+    Graphics2D g2d = image.createGraphics();
+    BasicStroke bs = new BasicStroke(2);
+    g2d.setBackground(Color.WHITE);
+    g2d.fillRect(0, 0, ht.imgWidth, ht.imgHeight);
+    g2d.setStroke(bs);
+    g2d.setColor(Color.RED);
+    int pointSize2 = 6;
+
+    for (OT1 ot1 : ht.historyOT1s) {
+      int x = (int) (ot1.getX() - pointSize2 / 2);
+      int y = (int) (ot1.getY() - pointSize2 / 2);
+      g2d.drawRect(x, y, pointSize2, pointSize2);
     }
 
     try {
