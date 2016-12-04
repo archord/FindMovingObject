@@ -51,7 +51,7 @@ public class FindLineObject {
     int rhoSize = 100;
     int thetaRange = 36;
     int rhoRange = 10;
-    int maxHoughFrameNunmber = 20;
+    int maxHoughFrameNunmber = 30;
     int validLineMinPoint = 5;
     float maxDistance = 100;
     int minValidPoint = 5;
@@ -153,7 +153,7 @@ public class FindLineObject {
   public void fitTest2() {
 
 //    String[] dates = {"161128-6-3-line1","161128-6-3-line2","161128-6-3-line3"};
-    String[] dates = {"161128-6-3-line4"};
+    String[] dates = {"161128-6-3-line5"};
 
     for (String tname : dates) {
       ot1list.clear();

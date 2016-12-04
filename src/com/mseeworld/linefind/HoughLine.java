@@ -28,10 +28,8 @@ public class HoughLine {
    *
    * @param theta
    * @param rho
-   * @param imgXCenter
-   * @param imgYCenter
    */
-  public HoughLine(float theta, float rho, float imgXCenter, float imgYCenter, float halfRho) {
+  public HoughLine(float theta, float rho) {
     this.theta = theta;
     this.rho = rho;
     this.frameList = new ArrayList();
@@ -81,8 +79,8 @@ public class HoughLine {
     this.lastPoint = null;
   }
 
-  public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y, Date dateUtc) {
-    this.addPoint(new HoughtPoint(pIdx, frameNumber, theta, rho, x, y, dateUtc));
+  public void addPoint(int pIdx, int frameNumber, float x, float y, Date dateUtc) {
+    this.addPoint(new HoughtPoint(pIdx, frameNumber, x, y, dateUtc));
   }
 
   /**
@@ -216,7 +214,7 @@ public class HoughLine {
 
     for (HoughFrame tFrame : frameList) {
       for (HoughtPoint tPoint : tFrame.pointList) {
-        tPoint.printInfo();
+        System.out.println(tPoint.getAllInfo());
       }
     }
   }

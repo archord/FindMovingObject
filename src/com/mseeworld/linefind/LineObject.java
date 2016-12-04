@@ -9,13 +9,15 @@ import java.util.List;
 import java.util.ListIterator;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoints;
-import org.apache.commons.math3.stat.regression.SimpleRegression;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 /**
  *
  * @author xy
  */
 public class LineObject {
+
+  public char lineType; //0:未分类；1：多帧单点；2：多帧多点；3：一帧多点
 
   public PolynomialCurveFitter fitter;
   public WeightedObservedPoints xyList;
@@ -24,15 +26,22 @@ public class LineObject {
   public double[] xyCoeff;
   public double[] txCoeff;
   public double[] tyCoeff;
+  public double xySigma;
+  public double txSigma;
+  public double tySigma;
+  public double xySigmaMax;
+  public double txSigmaMax;
+  public double tySigmaMax;
+  public double xySigmaMean;
+  public double txSigmaMean;
+  public double tySigmaMean;
 
   public ArrayList<HoughFrame> frameList;
   public ArrayList<HoughtPoint> pointList;
   public int pointNumber;
+  public int framePointMultiNumber;
+  public int framePointMaxNumber;
   public float avgFramePointNumber;
-
-  public float imgXCenter;
-  public float imgYCenter;
-  public float halfRho;
 
   public int firstFrameNumber;
   public int lastFrameNumber;
@@ -41,48 +50,28 @@ public class LineObject {
 
   public float theta;
   public float rho;
-  public float lastRho;
-  public float lastTheta;
-  public float lineRho; //根据直线的第一个和最后一个点算的rho
-  public float lineTheta;  //根据直线的第一个和最后一个点算的theta
-
-  public float sinTheta;
-  public float cosTheta;
-
   public float deltaX;
   public float deltaY;
 
-  public float speedX;
-  public float speedY;
-
   public boolean endLine;
-
-  public double ySigma;
 
   /**
    *
    * @param theta
    * @param rho
-   * @param imgXCenter
-   * @param imgYCenter
-   * @param halfRho
    */
-  public LineObject(float theta, float rho, float imgXCenter, float imgYCenter, float halfRho) {
+  public LineObject(float theta, float rho) {
     this.theta = theta;
     this.rho = rho;
-    this.imgXCenter = imgXCenter;
-    this.imgYCenter = imgYCenter;
-    this.halfRho = halfRho;
     this.frameList = new ArrayList();
     this.pointList = new ArrayList();
     this.pointNumber = 0;
     this.avgFramePointNumber = 0;
+    this.framePointMaxNumber = 0;
+    this.framePointMultiNumber = 0;
 
     this.firstFrameNumber = Integer.MAX_VALUE;
     this.lastFrameNumber = Integer.MIN_VALUE;
-
-    this.sinTheta = (float) Math.sin(this.theta);
-    this.cosTheta = (float) Math.cos(this.theta);
 
     this.endLine = false;
 
@@ -90,116 +79,98 @@ public class LineObject {
     xyList = new WeightedObservedPoints();
     txList = new WeightedObservedPoints();
     tyList = new WeightedObservedPoints();
+
+    lineType = '0';
   }
 
-  public void removeSingularPoint() {
-
-    SimpleRegression reg = new SimpleRegression();
-    int i = 0;
-    for (HoughtPoint ot1 : pointList) {
-      reg.addData(ot1.getX(), ot1.getY());
-//      if (i >= 2) {
-//        break;
-//      }
-//      i++;
+  public boolean isEndLine(int frameNumber) {
+    if (!endLine && lastFrameNumber < frameNumber) {
+      this.statistic();
+      this.findFirstAndLastPoint();
+      endLine = true;
     }
-
-    double sigma = Math.sqrt(reg.getSumSquaredErrors() / (pointList.size() - 1));
-    ySigma = sigma;
-//    double sigma2 = Double.MAX_VALUE;
-//    int idx = 1;
-//    while (sigma < sigma2) {
-////      System.out.println("regression: " + idx + ", sigma=" + sigma);
-//      for (int i = 0; i < pointList.size();) {
-//        HoughtPoint ot1 = pointList.get(i);
-//        float preY = (float) reg.predict(ot1.getX());
-//        double ydiff = preY - ot1.getY();
-//        if ((Math.abs(ydiff) > 2 * sigma)) {
-//          System.out.println(ydiff + "\t" + (Math.abs(ydiff) < 2 * sigma) + "\t" + (Math.abs(ydiff) < 3 * sigma));
-////          pointList.remove(i);
-//          this.removePoint(ot1);
-//          reg.removeData(ot1.getX(), ot1.getY());
-//        } else {
-//          i++;
-//        }
-//      }
-//      sigma2 = sigma;
-//      sigma = Math.sqrt(reg.getSumSquaredErrors() / (pointList.size() - 1));
-//      if (idx > 10) {
-//        System.out.println("regression times: " + idx);
-//        break;
-//      }
-//      idx++;
-//    }
-//    ySigma = sigma;
-
-  }
-
-  public void printPreInfo() {
-    int i = 0;
-    SimpleRegression reg = new SimpleRegression();
-    for (HoughtPoint ot1 : pointList) {
-      reg.addData(ot1.getX(), ot1.getY());
-//      if (i >= 2) {
-//        break;
-//      }
-//      i++;
-    }
-    i = 0;
-    for (HoughtPoint ot1 : pointList) {
-      float preY = (float) reg.predict(ot1.getX());
-      double ydiff = preY - ot1.getY();
-      System.out.println(ot1.getFrameNumber() + ": " + ot1.getX() + "\t" + ot1.getY() + "\t"
-              + preY + "\t" + ydiff + "\t" + (Math.abs(ydiff) < 2 * ySigma) + "\t" + (Math.abs(ydiff) < 3 * ySigma));
-//      if (i >= 2) {
-//        break;
-//      }
-//      i++;
-    }
-  }
-
-  public void evaluate() {
-    SimpleRegression reg = new SimpleRegression();
-    for (HoughtPoint hp : this.pointList) {
-      reg.addData(hp.getX(), hp.getY());
-    }
-
+    return endLine;
   }
 
   /**
-   * 在判定直线结束后，对直线进行分析
+   * 将目标分为3类，并对framePointMaxNumber大于等于2而且this.avgFramePointNumber小于等于2的目标一帧中的多个点合并为1个点
+   * 使用顺序 mvObj.analysis(); mvObj.updateInfo(); mvObj.statistic();
+   * mvObj.findFirstAndLastPoint();
    */
   public void analysis() {
-    if (avgFramePointNumber > 2) {
-      for (int i = 0; i < this.frameList.size(); i++) {
-        HoughFrame tframe = this.frameList.get(i);
-        if (tframe.pointList.size() <= 2) {
-          this.frameList.remove(i);
-          this.pointNumber -= tframe.pointList.size();
-          for (HoughtPoint tpoint : tframe.pointList) {
-            this.pointList.remove(tpoint);
+    if (this.frameList.size() == 1 && this.avgFramePointNumber > 2) {
+      lineType = '3';
+    } else {
+      if (this.framePointMaxNumber > 2 && this.avgFramePointNumber > 2) {
+        lineType = '2';
+      } else if (this.framePointMaxNumber > 2 && this.avgFramePointNumber <= 2) {
+        if (this.framePointMultiNumber == 1) {
+          lineType = '2';
+        } else {
+          lineType = '1';
+        }
+      } else if (this.framePointMaxNumber <= 2 && this.avgFramePointNumber > 1 && this.avgFramePointNumber <= 2) {
+        lineType = '1';
+      } else if (this.avgFramePointNumber <= 1) {
+        lineType = '1';
+      }
+    }
+
+    if (lineType == '1' && this.avgFramePointNumber > 1) {
+
+      for (HoughFrame hf : this.frameList) {
+        int tnum = hf.pointList.size();
+        if (tnum > 1) {
+          Double avgX = 0.0;
+          Double avgY = 0.0;
+          for (HoughtPoint hp : hf.pointList) {
+            avgX += hp.getX();
+            avgY += hp.getY();
           }
-          i--;
+          avgX /= tnum;
+          avgY /= tnum;
+          HoughtPoint fp = hf.pointList.get(0);
+          HoughtPoint thp = new HoughtPoint(fp.getpIdx(), fp.getFrameNumber(), avgX.floatValue(), avgY.floatValue(), fp.getDateUtc());
+
+          for (HoughtPoint hp : hf.pointList) {
+            for (int k = 0; k < this.pointList.size(); k++) {
+              if (hp.getpIdx() == this.pointList.get(k).getpIdx()) {
+                this.pointList.remove(k);
+                this.pointNumber--;
+                break;
+              }
+            }
+          }
+          hf.pointList.clear();
+          hf.pointList.add(thp);
+          this.pointList.add(thp);
+          this.pointNumber++;
         }
       }
     }
   }
 
-  public void calAllSpeed() {
-    int i = 0;
-    for (HoughtPoint tp : this.pointList) {
-      if (i > 0) {
-        HoughtPoint apoint = pointList.get(i - 1);
-        if (tp.getFrameNumber() == apoint.getFrameNumber()) {
-          if (i - 2 < 0) {
-            continue;
-          }
-          apoint = pointList.get(i - 2);
-        }
-        tp.calSpeed(apoint);
-      }
-      i++;
+  public void statistic() {
+    SummaryStatistics xyStat = new SummaryStatistics();
+    SummaryStatistics tyStat = new SummaryStatistics();
+    SummaryStatistics txStat = new SummaryStatistics();
+    for (HoughtPoint hp : this.pointList) {
+      double preYDiff = Math.abs(hp.getY() - preNextYByX(hp.getX()));
+      double preYDiff2 = Math.abs(hp.getY() - preNextYByT(hp.getDateUtc().getTime()));
+      double preXDiff = Math.abs(hp.getX() - preNextXByT(hp.getDateUtc().getTime()));
+      xyStat.addValue(preYDiff);
+      tyStat.addValue(preYDiff2);
+      txStat.addValue(preXDiff);
     }
+    xySigma = xyStat.getStandardDeviation();
+    tySigma = tyStat.getStandardDeviation();
+    txSigma = txStat.getStandardDeviation();
+    xySigmaMax = xyStat.getMax();
+    tySigmaMax = tyStat.getMax();
+    txSigmaMax = txStat.getMax();
+    xySigmaMean = xyStat.getMean();
+    tySigmaMean = tyStat.getMean();
+    txSigmaMean = txStat.getMean();
   }
 
   public void cloneLine(HoughLine hl) {
@@ -219,26 +190,29 @@ public class LineObject {
     txCoeff = fitter.fit(txList.toList());
     tyCoeff = fitter.fit(tyList.toList());
 
-    avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
-    findFirstAndLastPoint();
-
-    updateThetaRho();
-    calculateSpeed();
+    updateInfo();
   }
 
-  public void addLineObject(LineObject lineObj) {
+  public boolean isOnLine(OT1 ot1) {
 
-    for (HoughtPoint tp : lineObj.pointList) {
-      this.addPoint(tp);
+    boolean isOnLine = false;
+    double preYDiff = Math.abs(ot1.getY() - preNextYByX(ot1.getX()));
+    if (preYDiff < 10) {
+      if (this.framePointMaxNumber > 2) {
+        isOnLine = true;
+      } else {
+        double preXDiff = Math.abs(ot1.getX() - preNextXByT(ot1.getDate().getTime()));
+        double preYDiff2 = Math.abs(ot1.getY() - preNextYByT(ot1.getDate().getTime()));
+        if (preXDiff < 10 && preYDiff2 < 10) {
+          isOnLine = true;
+        }
+      }
     }
-    lineObj.pointList.clear();
-    lineObj.removeAll();
-    lineObj.firstPoint = null;
-    lineObj.lastPoint = null;
+    return isOnLine;
   }
 
-  public void addPoint(int pIdx, int frameNumber, float theta, float rho, float x, float y, Date dateUtc) {
-    this.addPoint(new HoughtPoint(pIdx, frameNumber, theta, rho, x, y, dateUtc));
+  public void addPoint(int pIdx, int frameNumber, float x, float y, Date dateUtc) {
+    this.addPoint(new HoughtPoint(pIdx, frameNumber, x, y, dateUtc));
   }
 
   /**
@@ -271,11 +245,7 @@ public class LineObject {
       lastFrame.addPoint(hp);
     }
 
-    avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
-    findFirstAndLastPoint();
-
-    updateThetaRho();
-    calculateSpeed();
+    updateInfo();
   }
 
   public double preNextYByX(double x) {
@@ -288,6 +258,33 @@ public class LineObject {
 
   public double preNextXByT(double t) {
     return txCoeff[0] + txCoeff[1] * t + txCoeff[2] * t * t;
+  }
+
+  public void addLineObject(LineObject lineObj) {
+
+    for (HoughtPoint tp : lineObj.pointList) {
+      this.addPoint(tp);
+    }
+    lineObj.pointList.clear();
+    lineObj.removeAll();
+    lineObj.firstPoint = null;
+    lineObj.lastPoint = null;
+  }
+
+  public void updateInfo() {
+
+    this.avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
+
+    this.framePointMultiNumber = 0;
+    for (HoughFrame hf : this.frameList) {
+      int tnum = hf.pointList.size();
+      if (this.framePointMaxNumber < tnum) {
+        this.framePointMaxNumber = tnum;
+      }
+      if (tnum > 1) {
+        this.framePointMultiNumber++;
+      }
+    }
   }
 
   /**
@@ -311,8 +308,6 @@ public class LineObject {
 
       deltaX = lfMinPoint.getX() - ffMinPoint.getX();
       deltaY = lfMinPoint.getY() - ffMinPoint.getY();
-//      deltaX = ffMinPoint.getX() - lfMinPoint.getX();
-//      deltaY = ffMinPoint.getY() - lfMinPoint.getY();
     } else {
       HoughFrame firstFrame = frameList.get(0);
       deltaX = firstFrame.deltaX;
@@ -332,242 +327,21 @@ public class LineObject {
     this.firstFrameNumber = firstPoint.getFrameNumber();
   }
 
-  public void updateThetaRho() {
-
-    if (this.pointNumber >= 2) {
-      HoughtPoint hp = pointList.get(this.pointNumber - 2);
-      hp.calKtheta(pointList.get(this.pointNumber - 1), imgXCenter, imgYCenter, halfRho);
-      this.lastTheta = hp.getTheta2();
-      this.lastRho = hp.getRho2();
-
-      this.sinTheta = (float) Math.sin(this.lastTheta);
-      this.cosTheta = (float) Math.cos(this.lastTheta);
-    }
-  }
-
-  public void calculateSpeed() {
-
-    if (avgFramePointNumber < 2) {
-      HoughtPoint lastPoint2 = pointList.get(this.pointNumber - 2);
-      float tdeltaX = lastPoint.getX() - lastPoint2.getX();
-      float tdeltaY = lastPoint.getY() - lastPoint2.getY();
-//      int deltaTime = lastPoint.getFrameNumber() - lastPoint2.getFrameNumber();
-      long deltaTime = lastPoint.getDateUtc().getTime() - lastPoint2.getDateUtc().getTime();
-      this.speedX = tdeltaX / deltaTime;
-      this.speedY = tdeltaY / deltaTime;
-    } else {
-      if (this.frameList.size() >= 2) {
-        HoughFrame lastFrame = this.frameList.get(this.frameList.size() - 1);
-        HoughFrame lastFrame2 = this.frameList.get(this.frameList.size() - 2);
-        int deltaTime = lastFrame.frameNumber - lastFrame2.frameNumber;
-        float tdeltaX;
-        float tdeltaY;
-        if (deltaX > 0) {
-          tdeltaX = lastFrame.minX.getX() - lastFrame2.minX.getX();
-        } else {
-          tdeltaX = lastFrame.maxX.getX() - lastFrame2.maxX.getX();
-        }
-        if (deltaY > 0) {
-          tdeltaY = lastFrame.minY.getX() - lastFrame2.minY.getX();
-        } else {
-          tdeltaY = lastFrame.maxY.getX() - lastFrame2.maxY.getX();
-        }
-        this.speedX = tdeltaX / deltaTime;
-        this.speedY = tdeltaY / deltaTime;
-      }
-    }
-  }
-
-  public boolean isEndLine(int frameNumber) {
-    if (!endLine && lastFrameNumber < frameNumber) {
-      this.analysis();
-      this.avgFramePointNumber = (float) (this.pointNumber * 1.0 / this.frameList.size());
-      this.findFirstAndLastPoint();
-      endLine = true;
-    }
-    return endLine;
-  }
-
-  public boolean matchLastPoint(OT1 ot1, float maxDistance) {
-
-    boolean flag = true;
-    if (this.pointNumber > 0) {
-      double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
-      boolean deltaFlag = true;
-      if (this.frameList.size() >= 2) {
-        float xDelta = ot1.getX() - lastPoint.getX();
-        float yDelta = ot1.getY() - lastPoint.getY();
-        deltaFlag = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
-      }
-      flag = (distance < maxDistance) && deltaFlag;
-    }
-    return flag;
-  }
-
-  public boolean matchLastPoint2(OT1 ot1, float maxDistance) {
-
-    boolean distFlag = true;
-    if (this.frameList.size() == 1) {
-      HoughFrame tframe = this.frameList.get(0);
-      if (tframe.frameNumber == ot1.getFrameNumber()) {
-        lastPoint = tframe.findNearestPoint(ot1);
-      } else {
-        lastPoint = tframe.findLastPoint(ot1);
-      }
-    } else {
-      HoughFrame lastFrame = this.frameList.get(this.frameList.size() - 1);
-      if (lastFrame.pointList.size() == 1) {
-        HoughtPoint tPoint = lastFrame.pointList.get(0);
-        lastPoint = tPoint;
-      } else {
-        if (lastFrame.frameNumber == ot1.getFrameNumber()) {
-          lastPoint = lastFrame.findNearestPoint(ot1);
-        } else {
-          lastPoint = lastFrame.findLastPoint(ot1);
-          //*************************用直线的delta来计算?
-//          lastPoint = lastFrame.findLastPointUsingDelta(ot1, this.deltaX, this.deltaY);
-        }
-      }
-    }
-    double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
-    distFlag = distance < maxDistance;
-
-    boolean deltaFlag = true;
-    if (this.frameList.size() >= 2) {
-      float xDelta = ot1.getX() - lastPoint.getX();
-      float yDelta = ot1.getY() - lastPoint.getY();
-      deltaFlag = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
-    }
-
-    boolean speedFlag = true;
-    if (this.frameList.size() >= 3 && avgFramePointNumber < 2) {
-      float xDelta = ot1.getX() - lastPoint.getX();
-      float yDelta = ot1.getY() - lastPoint.getY();
-//      int deltaTime = ot1.getFrameNumber() - lastPoint.getFrameNumber();
-      long deltaTime = ot1.getDate().getTime() - lastPoint.getDateUtc().getTime();
-//      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < this.speedX * 0.5) && (Math.abs(yDelta - this.speedY * deltaTime) < this.speedY * 0.5);
-//      speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < 5) && (Math.abs(yDelta - this.speedY * deltaTime) < 5);
-
-    }
-
-    boolean flag = distFlag & deltaFlag & speedFlag;
-    return flag;
-  }
-
   /**
-   * 1，帧数=1，匹配距离; 2，帧数=2，匹配方向; 3，帧数>=3,匹配速度
-   *
-   * @param ot1
-   * @param maxDistance 新目标与直线最后一个点的距离不超过maxDpListstance
-   * @return
+   * 删除多帧多点（type=2）类型中，只有一个点的帧。该操作意义不大，多帧多点中也可能出现只有一个点的帧
    */
-  public boolean matchLastPoint3(OT1 ot1, float maxDistance) {
-
-    boolean flag = true;
-    boolean deltaFlag = true;
-    boolean speedFlag = true;
-    if (this.frameList.size() <= 2) {
-      double distance = ot1.distance(lastPoint.getX(), lastPoint.getY());
-      flag = distance < maxDistance;
-      if (this.frameList.size() == 2) {
-        float xDelta = ot1.getX() - lastPoint.getX();
-        float yDelta = ot1.getY() - lastPoint.getY();
-        deltaFlag = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
-      }
-    } else {
-      if (avgFramePointNumber < 2) {
-        float xDelta = ot1.getX() - lastPoint.getX();
-        float yDelta = ot1.getY() - lastPoint.getY();
-        int deltaTime = ot1.getFrameNumber() - lastPoint.getFrameNumber();
-        speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < this.speedX * 0.5) && (Math.abs(yDelta - this.speedY * deltaTime) < this.speedY * 0.5);
-      } else {
-        if (this.frameList.size() >= 2) {
-          HoughFrame lastFrame = this.frameList.get(this.frameList.size() - 1);
-          HoughFrame lastFrame2 = this.frameList.get(this.frameList.size() - 2);
-          int deltaTime = lastFrame.frameNumber - lastFrame2.frameNumber;
-          float xDelta;
-          float yDelta;
-          if (deltaX > 0) {
-            xDelta = ot1.getX() - lastFrame2.minX.getX();
-          } else {
-            xDelta = ot1.getX() - lastFrame2.maxX.getX();
+  public void removeSinglePointOfMultiFrame() {
+    if (avgFramePointNumber > 2) {
+      for (int i = 0; i < this.frameList.size(); i++) {
+        HoughFrame tframe = this.frameList.get(i);
+        if (tframe.pointList.size() < 2) {
+          this.frameList.remove(i);
+          this.pointNumber -= tframe.pointList.size();
+          for (HoughtPoint tpoint : tframe.pointList) {
+            this.pointList.remove(tpoint);
           }
-          if (deltaY > 0) {
-            yDelta = ot1.getY() - lastFrame2.minY.getX();
-          } else {
-            yDelta = ot1.getY() - lastFrame2.maxY.getX();
-          }
-          speedFlag = (Math.abs(xDelta - this.speedX * deltaTime) < this.speedX * 1) && (Math.abs(yDelta - this.speedY * deltaTime) < this.speedY * 1);
+          i--;
         }
-      }
-    }
-    return flag & deltaFlag & speedFlag;
-  }
-
-  public boolean lineMatch() {
-
-    return false;
-  }
-
-  public void removePoint1(HoughtPoint hp) {
-
-    for (int k = 0; k < this.pointList.size(); k++) {
-      if (hp.getpIdx() == pointList.get(k).getpIdx()) {
-        pointList.remove(k);
-//        this.pointNumber--;
-        break;
-      }
-    }
-
-    for (int k = 0; k < this.frameList.size(); k++) {
-      HoughFrame tFrame = this.frameList.get(k);
-      if (tFrame.frameNumber == hp.getFrameNumber()) {
-        for (int i = 0; i < tFrame.pointList.size(); i++) {
-          if (hp.getpIdx() == tFrame.pointList.get(i).getpIdx()) {
-//            System.out.println(String.format("real: t=%5d, idx=%5d, number=%5d", t, tline2.pointList.get(pList), tline2.frameNumberList.get(pList)));
-            tFrame.removePoint(i);
-            this.pointNumber--;
-            if (tFrame.pointList.isEmpty()) {
-              this.frameList.remove(k);
-            }
-            break;
-          }
-        }
-        break;
-      }
-    }
-    if (this.frameList.isEmpty()) {
-      this.lastFrameNumber = Integer.MIN_VALUE;
-    } else {
-      this.lastFrameNumber = this.frameList.get(this.frameList.size() - 1).frameNumber;
-    }
-  }
-
-  public void removeFirstFrame1() {
-    HoughFrame firstFrame = frameList.get(0);
-    this.pointNumber -= firstFrame.pointList.size();
-    firstFrame.removeAll();
-    frameList.remove(0);
-  }
-
-  public void removeOldFrame1(int toFrameNumber) {
-
-    while (this.pointList.size() > 0) {
-      if (pointList.get(0).getFrameNumber() <= toFrameNumber) {
-        this.pointList.remove(0);
-      } else {
-        break;
-      }
-    }
-
-    while (this.frameList.size() > 0) {
-      HoughFrame hf = this.frameList.get(0);
-      if (hf.frameNumber <= toFrameNumber) {
-        this.pointNumber -= hf.pointList.size();
-        hf.removeAll();
-        this.frameList.remove(0);
-      } else {
-        break;
       }
     }
   }
@@ -675,13 +449,19 @@ public class LineObject {
     this.frameList.clear();
   }
 
+  public String getOutLineInfo() {
+    String rst = String.format("frameNumber:%3d,pointNumber:%3d,framePointMaxNumber:%3d,framePointMultiNumber:%3d,avgFramePointNumber:%4.1f,xySigma:%4.1f,tySigma:%4.1f,txSigma:%4.1f",
+            this.frameList.size(), this.pointNumber, this.framePointMaxNumber, this.framePointMultiNumber, this.avgFramePointNumber, this.xySigma, this.tySigma, this.txSigma);
+    return rst;
+  }
+
   public void printInfo(ArrayList<OT1> historyOT1s) {
 
     int i = 1;
     for (HoughFrame tFrame : frameList) {
       System.out.println(String.format("frame%03d, %4d, %2d", i, tFrame.frameNumber, tFrame.pointList.size()));
       for (HoughtPoint tPoint : tFrame.pointList) {
-        tPoint.printInfo();
+        System.out.println(tPoint.getAllInfo());;
       }
       i++;
     }
