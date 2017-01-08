@@ -45,7 +45,7 @@ public class DrawObject {
   public void drawObjsAll(String fName) {
 
 //    Integer idxArray[] = {14, 16, 19, 20, 6, 10, 23, 40, 43, 47};
-//    Integer idxArray[] = {145,146}; //   41,51
+//    Integer idxArray[] = {39}; //   8 85 40 153, 121,123,127
     Integer idxArray[] = {};
     idxList = new ArrayList(Arrays.asList(idxArray));
 
@@ -110,6 +110,11 @@ public class DrawObject {
       }
 
       if (!mvObj.isValidLine()) {
+        this.drawIdx++;
+        continue;
+      }
+
+      if (mvObj.avgFramePointNumber>2) {
         this.drawIdx++;
         continue;
       }
@@ -186,17 +191,10 @@ public class DrawObject {
       g2d.setFont(font1);
 //      drawStr = "" + (j) + "," + (mvObj.lastPoint.getFrameNumber());
 
-//      String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
-//      System.out.println(debugStr);
-//      mvObj.analysis();
-//      mvObj.updateInfo();
-//      mvObj.statistic();
-//      mvObj.findFirstAndLastPoint();
-//      debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
-//      System.out.println(debugStr);
-//      System.out.println("***");
+      String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
+      System.out.println(debugStr);
 //
-//      System.out.println("pIdx\t frameNumber\t x\t y\t xDelta\t yDelta\t fnDelta\t timeDelta\t xSpeedfn\t ySpeedt\t preX\t preY\t preDeltaX\t preDeltaY\n");
+//      System.out.println("movObj record list\n");
 //      mvObj.printInfo2();
 //      mvObj.printOT1Info(ht.historyOT1s);
       this.drawIdx++;

@@ -63,7 +63,7 @@ public class FindLineObject {
 
 //    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
 //      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
-    String[] dates = {"170103-5-5"}; //170103-5-5  170103-4-32  170103-5-5-debug1
+    String[] dates = {"170103-4-32"}; //170103-5-5  170103-4-32  170103-5-5-debug1
 
     for (String tname : dates) {
       ot1list.clear();
@@ -116,7 +116,7 @@ public class FindLineObject {
   public void fitTest11() {
 
 //    String[] dates = {"161128-6-3-line1","161128-6-3-line2","161128-6-3-line3"};
-    String[] dates = {"170103-5-5-debug2"}; //170103-5-5  170103-4-32  -debug1
+    String[] dates = {"170103-varyspeed2"}; //170103-5-5  170103-4-32  -debug1
 
     for (String tname : dates) {
       ot1list.clear();

@@ -25,8 +25,8 @@ public class LineObject {
   public PolynomialCurveFitter fitter2;
   public PolynomialCurveFitter fitter3;
   public List<WeightedObservedPoint> xyList;
-  public WeightedObservedPoints txList;
-  public WeightedObservedPoints tyList;
+  public List<WeightedObservedPoint> txList;
+  public List<WeightedObservedPoint> tyList;
   public double[] xyCoeff;
   public double[] txCoeff;
   public double[] tyCoeff;
@@ -83,8 +83,8 @@ public class LineObject {
     fitter2 = PolynomialCurveFitter.create(2);
     fitter3 = PolynomialCurveFitter.create(3);
     xyList = new ArrayList();
-    txList = new WeightedObservedPoints();
-    tyList = new WeightedObservedPoints();
+    txList = new ArrayList();
+    tyList = new ArrayList();
 
     lineType = '0';
   }
@@ -171,70 +171,43 @@ public class LineObject {
   }
 
   public void statistic() {
-    xyStatistic();
-    txyStatistic();
-  }
 
-  public void xyStatistic() {
-
-    while (xyList.size() > 20) {
-      xyList.remove(0);
+    xyList.clear();
+    txList.clear();
+    tyList.clear();
+    for (HoughtPoint hp : pointList) {
+      xyList.add(new WeightedObservedPoint(1, hp.getX(), hp.getY()));
+      txList.add(new WeightedObservedPoint(1, hp.getDateUtc().getTime(), hp.getX()));
+      tyList.add(new WeightedObservedPoint(1, hp.getDateUtc().getTime(), hp.getY()));
     }
 
-    xyCoeff = fitter1.fit(xyList);
+    xyCoeff = fitter3.fit(xyList);
+    txCoeff = fitter3.fit(txList);
+    tyCoeff = fitter3.fit(tyList);
 
     SummaryStatistics xyStat = new SummaryStatistics();
-    for (HoughtPoint hp : this.pointList) {
-      double preYDiff = Math.abs(hp.getY() - preNextYByX(hp.getX()));
-      xyStat.addValue(preYDiff);
-    }
-    xySigma = xyStat.getStandardDeviation();
-    xySigmaMax = xyStat.getMax();
-    xySigmaMean = xyStat.getMean();
-  }
-
-  public void txyStatistic() {
-
-    txCoeff = fitter3.fit(txList.toList());
-    tyCoeff = fitter3.fit(tyList.toList());
-
     SummaryStatistics tyStat = new SummaryStatistics();
     SummaryStatistics txStat = new SummaryStatistics();
     for (HoughtPoint hp : this.pointList) {
-      double preYDiff2 = Math.abs(hp.getY() - preNextYByT(hp.getDateUtc().getTime()));
-      double preXDiff = Math.abs(hp.getX() - preNextXByT(hp.getDateUtc().getTime()));
+      double preYDiff = Math.abs(hp.getY() - preNextYByX3(hp.getX()));
+      double preYDiff2 = Math.abs(hp.getY() - preNextYByT3(hp.getDateUtc().getTime()));
+      double preXDiff = Math.abs(hp.getX() - preNextXByT3(hp.getDateUtc().getTime()));
+      xyStat.addValue(preYDiff);
       tyStat.addValue(preYDiff2);
       txStat.addValue(preXDiff);
     }
+    xySigma = xyStat.getStandardDeviation();
     tySigma = tyStat.getStandardDeviation();
     txSigma = txStat.getStandardDeviation();
+    xySigmaMax = xyStat.getMax();
+    xySigmaMean = xyStat.getMean();
     tySigmaMax = tyStat.getMax();
     txSigmaMax = txStat.getMax();
     tySigmaMean = tyStat.getMean();
     txSigmaMean = txStat.getMean();
   }
 
-  public void cloneLine(HoughLine hl) {
-    this.frameList = hl.frameList;
-    this.pointList = hl.pointList;
-    this.pointNumber = hl.pointNumber;
-    this.lastFrameNumber = hl.lastFrameNumber;
-    this.lastPoint = hl.lastPoint;
-    hl.clearAll();
-
-    for (HoughtPoint tp : pointList) {
-      xyList.add(new WeightedObservedPoint(1, tp.getX(), tp.getY()));
-      txList.add(tp.getDateUtc().getTime(), tp.getX());
-      tyList.add(tp.getDateUtc().getTime(), tp.getY());
-    }
-
-    updateInfo();
-    findFirstAndLastPoint();
-  }
-
-  public boolean isOnLine(OtObserveRecord ot1) {
-
-    xyStatistic();
+  public boolean isOnLine2(OtObserveRecord ot1) {
 
     boolean isOnLine = false;
     double preYDiff = Math.abs(ot1.getY() - preNextYByX(ot1.getX()));
@@ -250,9 +223,7 @@ public class LineObject {
     return isOnLine;
   }
 
-  public boolean isOnLine2(OtObserveRecord ot1) {
-
-    statistic();
+  public boolean isOnLine(OtObserveRecord ot1) {
 
     boolean isOnLine = false;
     double preYDiff = Math.abs(ot1.getY() - preNextYByX(ot1.getX()));
@@ -268,12 +239,33 @@ public class LineObject {
       } else {
         double preXDiff = Math.abs(ot1.getX() - preNextXByT(ot1.getDateUt().getTime()));
         double preYDiff2 = Math.abs(ot1.getY() - preNextYByT(ot1.getDateUt().getTime()));
-        if (preXDiff < 10 && preYDiff2 < 10) {
+        if (preXDiff < 100 && preYDiff2 < 100) {
           isOnLine = true;
         }
       }
     }
     return isOnLine;
+  }
+
+  public void cloneLine(HoughLine hl) {
+    this.frameList = hl.frameList;
+    this.pointList = hl.pointList;
+    this.pointNumber = hl.pointNumber;
+    this.lastFrameNumber = hl.lastFrameNumber;
+    this.lastPoint = hl.lastPoint;
+    hl.clearAll();
+
+    for (HoughtPoint tp : pointList) {
+      xyList.add(new WeightedObservedPoint(1, tp.getX(), tp.getY()));
+      txList.add(new WeightedObservedPoint(1, tp.getDateUtc().getTime(), tp.getX()));
+      tyList.add(new WeightedObservedPoint(1, tp.getDateUtc().getTime(), tp.getY()));
+    }
+
+    xyfit();
+    txyfit();
+
+    updateInfo();
+    findFirstAndLastPoint();
   }
 
   public void addPoint(int pIdx, int frameNumber, float x, float y, Date dateUtc, long oorId) {
@@ -287,17 +279,20 @@ public class LineObject {
    * pListv. 该直线帧数大于2：与上一帧的帧编号差值小于N1（10）；与上一帧中最近的点，距离小于L1；同时计算直线的速度Vx1，Vy1 v.
    * 直线的最后帧与当前帧编号差值大于N1，则将该直线标示为识别完成。 b. 帧编号未改变 pList. 帧编号小于N1，距离小于L1，方向和速度满足预测
    *
-   * 多帧多点，注意事项：
-   * 1，delta的计算：delta的计算至少需要两帧数据
+   * 多帧多点，注意事项： 1，delta的计算：delta的计算至少需要两帧数据
    * 2，计算下一个点与最后一个点的delta时，如果一帧中有多个点，先来的一个点是距离上一帧较远的点A，则新来的较近的点B计算的delta是与A的，结果出错
    * 3，解决方案是：新一帧的点与上一帧的点求delta，这里将添加点（pointList.add(hp);）放到求上一帧的最后一个点之后。
+   *
    * @param hp
    */
   public final void addPoint(HoughtPoint hp) {
 
     xyList.add(new WeightedObservedPoint(1, hp.getX(), hp.getY()));
-    txList.add(hp.getDateUtc().getTime(), hp.getX());
-    tyList.add(hp.getDateUtc().getTime(), hp.getY());
+    txList.add(new WeightedObservedPoint(1, hp.getDateUtc().getTime(), hp.getX()));
+    tyList.add(new WeightedObservedPoint(1, hp.getDateUtc().getTime(), hp.getY()));
+
+    xyfit();
+    txyfit();
 
     if (frameList.isEmpty() || (lastFrameNumber != hp.getFrameNumber())) {
       lastFrameNumber = hp.getFrameNumber();
@@ -315,6 +310,24 @@ public class LineObject {
     updateInfo();
   }
 
+  public void xyfit() {
+    while (xyList.size() > 20) {
+      xyList.remove(0);
+    }
+    xyCoeff = fitter1.fit(xyList);
+  }
+
+  public void txyfit() {
+    while (txList.size() > 20) {
+      txList.remove(0);
+    }
+    txCoeff = fitter1.fit(txList);
+    while (tyList.size() > 20) {
+      tyList.remove(0);
+    }
+    tyCoeff = fitter1.fit(tyList);
+  }
+
   public double preNextYByX(double x) {
     return xyCoeff[0] + xyCoeff[1] * x;
   }
@@ -328,10 +341,18 @@ public class LineObject {
   }
 
   public double preNextYByT(double t) {
-    return tyCoeff[0] + tyCoeff[1] * t + tyCoeff[2] * t * t + tyCoeff[3] * t * t * t;
+    return tyCoeff[0] + tyCoeff[1] * t;
   }
 
   public double preNextXByT(double t) {
+    return txCoeff[0] + txCoeff[1] * t;
+  }
+
+  public double preNextYByT3(double t) {
+    return tyCoeff[0] + tyCoeff[1] * t + tyCoeff[2] * t * t + tyCoeff[3] * t * t * t;
+  }
+
+  public double preNextXByT3(double t) {
     return txCoeff[0] + txCoeff[1] * t + txCoeff[2] * t * t + txCoeff[3] * t * t * t;
   }
 
