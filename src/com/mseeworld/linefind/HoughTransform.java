@@ -169,6 +169,10 @@ public class HoughTransform {
     int i = 0;
     for (LineObject tline : this.mvObjs) {
       
+      if(ot1.getFfNumber()==2473){
+        System.out.println("here");
+      }
+
       if (!tline.isEndLine(ot1.getFfNumber()- this.maxHoughFrameNunmber + 1)) {
         if (tline.isOnLine(ot1)) {
           tline.addPoint(numOT1s - 1, ot1.getFfNumber(), ot1.getX(), ot1.getY(), ot1.getDateUt(), ot1.getOorId());

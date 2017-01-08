@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
@@ -20,8 +21,10 @@ public class LineObject {
 
   public char lineType; //0:未分类；1：多帧单点；2：多帧多点；3：一帧多点
 
-  public PolynomialCurveFitter fitter;
-  public WeightedObservedPoints xyList;
+  public PolynomialCurveFitter fitter1;
+  public PolynomialCurveFitter fitter2;
+  public PolynomialCurveFitter fitter3;
+  public List<WeightedObservedPoint> xyList;
   public WeightedObservedPoints txList;
   public WeightedObservedPoints tyList;
   public double[] xyCoeff;
@@ -76,8 +79,10 @@ public class LineObject {
 
     this.endLine = false;
 
-    fitter = PolynomialCurveFitter.create(2);
-    xyList = new WeightedObservedPoints();
+    fitter1 = PolynomialCurveFitter.create(1);
+    fitter2 = PolynomialCurveFitter.create(2);
+    fitter3 = PolynomialCurveFitter.create(3);
+    xyList = new ArrayList();
     txList = new WeightedObservedPoints();
     tyList = new WeightedObservedPoints();
 
@@ -105,12 +110,11 @@ public class LineObject {
   }
 
   /**
-   * 根据帧数据点个数，将目标分为4类：
-   * 1，多帧出现，每一帧只有一个数据点
+   * 根据帧数据点个数，将目标分为4类： 1，多帧出现，每一帧只有一个数据点
    * 2，多帧出现，每一帧有一到多个数据点，且至少有一帧最少有两个数据点，且帧平均数据点数量不大于2
    * 3，多帧出现，每一帧有一到多个数据点，且大部分帧的数据点个数大于2
-   * 4，单帧出现，该帧数据点个数大于2（大于移动目标识别的最小阈值validLineMinPoint=5）
-   * 使用顺序 mvObj.analysis(); mvObj.updateInfo(); mvObj.statistic();mvObj.findFirstAndLastPoint();
+   * 4，单帧出现，该帧数据点个数大于2（大于移动目标识别的最小阈值validLineMinPoint=5） 使用顺序 mvObj.analysis();
+   * mvObj.updateInfo(); mvObj.statistic();mvObj.findFirstAndLastPoint();
    */
   public void analysis() {
     if (this.frameList.size() == 1 && this.avgFramePointNumber > 2) {
@@ -167,24 +171,45 @@ public class LineObject {
   }
 
   public void statistic() {
+    xyStatistic();
+    txyStatistic();
+  }
+
+  public void xyStatistic() {
+
+    while (xyList.size() > 20) {
+      xyList.remove(0);
+    }
+
+    xyCoeff = fitter1.fit(xyList);
+
     SummaryStatistics xyStat = new SummaryStatistics();
+    for (HoughtPoint hp : this.pointList) {
+      double preYDiff = Math.abs(hp.getY() - preNextYByX(hp.getX()));
+      xyStat.addValue(preYDiff);
+    }
+    xySigma = xyStat.getStandardDeviation();
+    xySigmaMax = xyStat.getMax();
+    xySigmaMean = xyStat.getMean();
+  }
+
+  public void txyStatistic() {
+
+    txCoeff = fitter3.fit(txList.toList());
+    tyCoeff = fitter3.fit(tyList.toList());
+
     SummaryStatistics tyStat = new SummaryStatistics();
     SummaryStatistics txStat = new SummaryStatistics();
     for (HoughtPoint hp : this.pointList) {
-      double preYDiff = Math.abs(hp.getY() - preNextYByX(hp.getX()));
       double preYDiff2 = Math.abs(hp.getY() - preNextYByT(hp.getDateUtc().getTime()));
       double preXDiff = Math.abs(hp.getX() - preNextXByT(hp.getDateUtc().getTime()));
-      xyStat.addValue(preYDiff);
       tyStat.addValue(preYDiff2);
       txStat.addValue(preXDiff);
     }
-    xySigma = xyStat.getStandardDeviation();
     tySigma = tyStat.getStandardDeviation();
     txSigma = txStat.getStandardDeviation();
-    xySigmaMax = xyStat.getMax();
     tySigmaMax = tyStat.getMax();
     txSigmaMax = txStat.getMax();
-    xySigmaMean = xyStat.getMean();
     tySigmaMean = tyStat.getMean();
     txSigmaMean = txStat.getMean();
   }
@@ -198,18 +223,36 @@ public class LineObject {
     hl.clearAll();
 
     for (HoughtPoint tp : pointList) {
-      xyList.add(tp.getX(), tp.getY());
+      xyList.add(new WeightedObservedPoint(1, tp.getX(), tp.getY()));
       txList.add(tp.getDateUtc().getTime(), tp.getX());
       tyList.add(tp.getDateUtc().getTime(), tp.getY());
     }
-    xyCoeff = fitter.fit(xyList.toList());
-    txCoeff = fitter.fit(txList.toList());
-    tyCoeff = fitter.fit(tyList.toList());
 
     updateInfo();
+    findFirstAndLastPoint();
   }
 
   public boolean isOnLine(OtObserveRecord ot1) {
+
+    xyStatistic();
+
+    boolean isOnLine = false;
+    double preYDiff = Math.abs(ot1.getY() - preNextYByX(ot1.getX()));
+    if (preYDiff < 10) {
+      if (this.frameList.size() >= 2 && ot1.getFfNumber() != this.lastFrameNumber) {
+        float xDelta = ot1.getX() - lastPoint.getX();
+        float yDelta = ot1.getY() - lastPoint.getY();
+        isOnLine = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
+      } else {
+        isOnLine = true;
+      }
+    }
+    return isOnLine;
+  }
+
+  public boolean isOnLine2(OtObserveRecord ot1) {
+
+    statistic();
 
     boolean isOnLine = false;
     double preYDiff = Math.abs(ot1.getY() - preNextYByX(ot1.getX()));
@@ -244,42 +287,52 @@ public class LineObject {
    * pListv. 该直线帧数大于2：与上一帧的帧编号差值小于N1（10）；与上一帧中最近的点，距离小于L1；同时计算直线的速度Vx1，Vy1 v.
    * 直线的最后帧与当前帧编号差值大于N1，则将该直线标示为识别完成。 b. 帧编号未改变 pList. 帧编号小于N1，距离小于L1，方向和速度满足预测
    *
+   * 多帧多点，注意事项：
+   * 1，delta的计算：delta的计算至少需要两帧数据
+   * 2，计算下一个点与最后一个点的delta时，如果一帧中有多个点，先来的一个点是距离上一帧较远的点A，则新来的较近的点B计算的delta是与A的，结果出错
+   * 3，解决方案是：新一帧的点与上一帧的点求delta，这里将添加点（pointList.add(hp);）放到求上一帧的最后一个点之后。
    * @param hp
    */
   public final void addPoint(HoughtPoint hp) {
 
-    pointNumber++;
-    pointList.add(hp);
-
-    xyList.add(hp.getX(), hp.getY());
+    xyList.add(new WeightedObservedPoint(1, hp.getX(), hp.getY()));
     txList.add(hp.getDateUtc().getTime(), hp.getX());
     tyList.add(hp.getDateUtc().getTime(), hp.getY());
-    xyCoeff = fitter.fit(xyList.toList());
-    txCoeff = fitter.fit(txList.toList());
-    tyCoeff = fitter.fit(tyList.toList());
 
     if (frameList.isEmpty() || (lastFrameNumber != hp.getFrameNumber())) {
       lastFrameNumber = hp.getFrameNumber();
       HoughFrame hframe = new HoughFrame(hp, hp.getFrameNumber());
       frameList.add(hframe);
+      findFirstAndLastPoint();
     } else {
       HoughFrame lastFrame = frameList.get(frameList.size() - 1);
       lastFrame.addPoint(hp);
     }
 
+    pointNumber++;
+    pointList.add(hp);
+
     updateInfo();
   }
 
   public double preNextYByX(double x) {
+    return xyCoeff[0] + xyCoeff[1] * x;
+  }
+
+  public double preNextYByX2(double x) {
     return xyCoeff[0] + xyCoeff[1] * x + xyCoeff[2] * x * x;
   }
 
+  public double preNextYByX3(double x) {
+    return xyCoeff[0] + xyCoeff[1] * x + xyCoeff[2] * x * x + xyCoeff[3] * x * x * x;
+  }
+
   public double preNextYByT(double t) {
-    return tyCoeff[0] + tyCoeff[1] * t + tyCoeff[2] * t * t;
+    return tyCoeff[0] + tyCoeff[1] * t + tyCoeff[2] * t * t + tyCoeff[3] * t * t * t;
   }
 
   public double preNextXByT(double t) {
-    return txCoeff[0] + txCoeff[1] * t + txCoeff[2] * t * t;
+    return txCoeff[0] + txCoeff[1] * t + txCoeff[2] * t * t + txCoeff[3] * t * t * t;
   }
 
   public void addLineObject(LineObject lineObj) {
@@ -388,6 +441,7 @@ public class LineObject {
             this.pointList.remove(tpoint);
           }
           i--;
+
         }
       }
     }
@@ -539,4 +593,12 @@ public class LineObject {
     return 0;
   }
 
+  public void printOT1Info(ArrayList<OtObserveRecord> historyOT1s) {
+    int i = 0;
+    for (HoughtPoint tPoint : pointList) {
+      OtObserveRecord ot1 = historyOT1s.get(tPoint.getpIdx());
+      ot1.printInfo();
+      i++;
+    }
+  }
 }

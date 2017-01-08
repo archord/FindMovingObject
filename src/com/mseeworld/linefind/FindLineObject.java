@@ -24,6 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Scanner;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
@@ -39,7 +40,7 @@ public class FindLineObject {
   private int rhoSize = 100;
   private int thetaRange = 36;
   private int rhoRange = 10;
-  private int maxHoughFrameNunmber = 30;
+  private int maxHoughFrameNunmber = 10;
   private int validLineMinPoint = 5;
   private float maxDistance = 100;
   private int minValidPoint = 5;
@@ -53,7 +54,7 @@ public class FindLineObject {
   public static void main(String[] args) {
     FindLineObject fmo = new FindLineObject();
     fmo.findMovingObject();
-//    fmo.fitTest();
+//    fmo.fitTest11();
 //    fmo.fitTest2();
 //    fmo.fitTest3();
   }
@@ -62,7 +63,7 @@ public class FindLineObject {
 
 //    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
 //      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
-    String[] dates = {"170103-5-5"}; //170103-5-5  170103-4-32
+    String[] dates = {"170103-5-5"}; //170103-5-5  170103-4-32  170103-5-5-debug1
 
     for (String tname : dates) {
       ot1list.clear();
@@ -109,6 +110,111 @@ public class FindLineObject {
     dObj.drawObjsAll(imgPath);
   }
 
+  /**
+   * 一阶拟合
+   */
+  public void fitTest11() {
+
+//    String[] dates = {"161128-6-3-line1","161128-6-3-line2","161128-6-3-line3"};
+    String[] dates = {"170103-5-5-debug2"}; //170103-5-5  170103-4-32  -debug1
+
+    for (String tname : dates) {
+      ot1list.clear();
+      String ot1File = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170103\\" + tname + ".txt";
+      getOT1(ot1File);
+
+//      WeightedObservedPoints objs1 = new WeightedObservedPoints();
+      List<WeightedObservedPoint> objs1 = new ArrayList();
+      WeightedObservedPoints objs2 = new WeightedObservedPoints();
+      WeightedObservedPoints objs3 = new WeightedObservedPoints();
+      PolynomialCurveFitter fitter = PolynomialCurveFitter.create(1);
+
+      int num = 0;
+      for (OtObserveRecord ot1 : ot1list) {
+        long t = ot1.getDateUt().getTime();
+        objs1.add(new WeightedObservedPoint(1, ot1.getX(), ot1.getY()));
+//        objs1.add(ot1.getX(), ot1.getY());
+        objs2.add(t, ot1.getY());
+        objs3.add(t, ot1.getX());
+
+        if (objs1.size() > 20) {
+          objs1.remove(0);
+        }
+
+        if (num >= 5) {
+          final double[] coeff1 = fitter.fit(objs1);
+          final double[] coeff2 = fitter.fit(objs2.toList());
+          final double[] coeff3 = fitter.fit(objs3.toList());
+          double preY1 = coeff1[0] + coeff1[1] * ot1.getX();
+          double preY2 = coeff2[0] + coeff2[1] * t;
+          double preX1 = coeff3[0] + coeff3[1] * t;
+          double ydiff1 = preY1 - ot1.getY();
+          double ydiff2 = preY2 - ot1.getY();
+          double xdiff1 = preX1 - ot1.getX();
+//          if (Math.abs(ydiff1) > 10 || Math.abs(ydiff2) > 10 || Math.abs(xdiff1) > 10) {
+//            System.out.println("**********");
+//          }
+          if (Math.abs(ydiff1) > 10) {
+            System.out.println("**********");
+          }
+          String rst = String.format("%5d %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f",
+                  ot1.getFfNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
+          System.out.println(rst);
+        }
+        num++;
+      }
+    }
+  }
+
+  /**
+   * 三阶拟合
+   */
+  public void fitTest2() {
+
+//    String[] dates = {"161128-6-3-line1","161128-6-3-line2","161128-6-3-line3"};
+    String[] dates = {"170103-5-5-debug1"}; //170103-5-5  170103-4-32  -debug1
+
+    for (String tname : dates) {
+      ot1list.clear();
+      String ot1File = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170103\\" + tname + ".txt";
+      getOT1(ot1File);
+
+      WeightedObservedPoints objs1 = new WeightedObservedPoints();
+      WeightedObservedPoints objs2 = new WeightedObservedPoints();
+      WeightedObservedPoints objs3 = new WeightedObservedPoints();
+      PolynomialCurveFitter fitter = PolynomialCurveFitter.create(3);
+
+      int num = 0;
+      for (OtObserveRecord ot1 : ot1list) {
+        long t = ot1.getDateUt().getTime();
+        objs1.add(ot1.getX(), ot1.getY());
+        objs2.add(t, ot1.getY());
+        objs3.add(t, ot1.getX());
+        if (num >= 5) {
+          final double[] coeff1 = fitter.fit(objs1.toList());
+          final double[] coeff2 = fitter.fit(objs2.toList());
+          final double[] coeff3 = fitter.fit(objs3.toList());
+          double preY1 = coeff1[0] + coeff1[1] * ot1.getX() + coeff1[2] * ot1.getX() * ot1.getX() + coeff1[3] * ot1.getX() * ot1.getX() * ot1.getX();
+          double preY2 = coeff2[0] + coeff2[1] * t + coeff2[2] * t * t + coeff2[3] * t * t * t;
+          double preX1 = coeff3[0] + coeff3[1] * t + coeff3[2] * t * t + coeff3[3] * t * t * t;
+          double ydiff1 = preY1 - ot1.getY();
+          double ydiff2 = preY2 - ot1.getY();
+          double xdiff1 = preX1 - ot1.getX();
+          if (Math.abs(ydiff1) > 10 || Math.abs(ydiff2) > 10 || Math.abs(xdiff1) > 10) {
+            System.out.println("**********");
+          }
+//          if (Math.abs(ydiff1) > 10) {
+//            System.out.println("**********");
+//          }
+          String rst = String.format("%5d %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f",
+                  ot1.getFfNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
+          System.out.println(rst);
+        }
+        num++;
+      }
+    }
+  }
+
   public void fitTest() {
 
     String[] dates = {"debug-167-163"};
@@ -152,49 +258,6 @@ public class FindLineObject {
         double ydiff = preY - ot1.getY();
         System.out.println(ot1.getFfNumber() + ": " + ot1.getX() + "\t" + ot1.getY() + "\t"
                 + preY + "\t" + ydiff + "\t" + (Math.abs(ydiff) < 2 * sigma) + "\t" + (Math.abs(ydiff) < 3 * sigma));
-      }
-    }
-  }
-
-  public void fitTest2() {
-
-//    String[] dates = {"161128-6-3-line1","161128-6-3-line2","161128-6-3-line3"};
-    String[] dates = {"161128-6-3-line5"};
-
-    for (String tname : dates) {
-      ot1list.clear();
-      String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + ".txt";
-      getOT1(ot1File);
-
-      WeightedObservedPoints objs1 = new WeightedObservedPoints();
-      WeightedObservedPoints objs2 = new WeightedObservedPoints();
-      WeightedObservedPoints objs3 = new WeightedObservedPoints();
-      PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
-
-      int num = 0;
-      for (OtObserveRecord ot1 : ot1list) {
-        long t = ot1.getDateUt().getTime();
-        objs1.add(ot1.getX(), ot1.getY());
-        objs2.add(t, ot1.getY());
-        objs3.add(t, ot1.getX());
-        if (num >= 5) {
-          final double[] coeff1 = fitter.fit(objs1.toList());
-          final double[] coeff2 = fitter.fit(objs2.toList());
-          final double[] coeff3 = fitter.fit(objs3.toList());
-          double preY1 = coeff1[0] + coeff1[1] * ot1.getX() + coeff1[2] * ot1.getX() * ot1.getX();
-          double preY2 = coeff2[0] + coeff2[1] * t + coeff2[2] * t * t;
-          double preX1 = coeff3[0] + coeff3[1] * t + coeff3[2] * t * t;
-          double ydiff1 = preY1 - ot1.getY();
-          double ydiff2 = preY2 - ot1.getY();
-          double xdiff1 = preX1 - ot1.getX();
-          if (Math.abs(ydiff1) > 10 || Math.abs(ydiff2) > 10 || Math.abs(xdiff1) > 10) {
-            System.out.println("**********");
-          }
-          String rst = String.format("%5d %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f",
-                  ot1.getFfNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
-          System.out.println(rst);
-        }
-        num++;
       }
     }
   }
@@ -288,6 +351,7 @@ public class FindLineObject {
         float y = Float.parseFloat(tstr[1]);  //1
         float ra = Float.parseFloat(tstr[2]); //2
         float dec = Float.parseFloat(tstr[3]);
+        String dateStr = tstr[4];
         float mag = Float.parseFloat(tstr[5]);
         int number = Integer.parseInt(tstr[6]);
         float xTemp = Float.parseFloat(tstr[8]);
@@ -309,6 +373,7 @@ public class FindLineObject {
         ot1.setXTemp(x);
         ot1.setYTemp(y);
         ot1.setDateUt(tdate);
+        ot1.setDateStr(dateStr);
 
         ot1list.add(ot1);
         tline++;

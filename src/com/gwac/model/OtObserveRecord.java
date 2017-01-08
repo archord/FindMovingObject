@@ -333,4 +333,14 @@ public class OtObserveRecord implements java.io.Serializable {
     throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
   }
 
+  public void printInfo() {
+    System.out.println(String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%f\t%f",
+            this.x, this.y, this.raD, this.decD, this.dateStr, this.magAper, this.ffNumber, this.XTemp, this.YTemp));
+  }
+
+  @Override
+  public String toString() {
+    return String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%f\t%f",
+            this.x, this.y, this.raD, this.decD, this.dateStr, this.magAper, this.ffNumber, this.XTemp, this.YTemp);
+  }
 }
