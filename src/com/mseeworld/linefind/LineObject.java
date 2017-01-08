@@ -3,6 +3,7 @@
  */
 package com.mseeworld.linefind;
 
+import com.gwac.model.OtObserveRecord;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -83,8 +84,19 @@ public class LineObject {
     lineType = '0';
   }
 
+  public boolean isValidLine() {
+    boolean isValid = true;
+    if (this.avgFramePointNumber <= 2 && (this.tySigma > 10 || this.txSigma > 10)) {
+      isValid = false;
+    }
+    return isValid;
+  }
+
   public boolean isEndLine(int frameNumber) {
     if (!endLine && lastFrameNumber < frameNumber) {
+      this.removeSinglePointOfMultiFrame();
+      this.analysis();
+      this.updateInfo();
       this.statistic();
       this.findFirstAndLastPoint();
       endLine = true;
@@ -93,30 +105,34 @@ public class LineObject {
   }
 
   /**
-   * 将目标分为3类，并对framePointMaxNumber大于等于2而且this.avgFramePointNumber小于等于2的目标一帧中的多个点合并为1个点
-   * 使用顺序 mvObj.analysis(); mvObj.updateInfo(); mvObj.statistic();
-   * mvObj.findFirstAndLastPoint();
+   * 根据帧数据点个数，将目标分为4类：
+   * 1，多帧出现，每一帧只有一个数据点
+   * 2，多帧出现，每一帧有一到多个数据点，且至少有一帧最少有两个数据点，且帧平均数据点数量不大于2
+   * 3，多帧出现，每一帧有一到多个数据点，且大部分帧的数据点个数大于2
+   * 4，单帧出现，该帧数据点个数大于2（大于移动目标识别的最小阈值validLineMinPoint=5）
+   * 使用顺序 mvObj.analysis(); mvObj.updateInfo(); mvObj.statistic();mvObj.findFirstAndLastPoint();
    */
   public void analysis() {
     if (this.frameList.size() == 1 && this.avgFramePointNumber > 2) {
-      lineType = '3';
+      lineType = '4';
     } else {
       if (this.framePointMaxNumber > 2 && this.avgFramePointNumber > 2) {
-        lineType = '2';
+        lineType = '3';
       } else if (this.framePointMaxNumber > 2 && this.avgFramePointNumber <= 2) {
         if (this.framePointMultiNumber == 1) {
-          lineType = '2';
+          lineType = '3';
         } else {
-          lineType = '1';
+          lineType = '2';
         }
       } else if (this.framePointMaxNumber <= 2 && this.avgFramePointNumber > 1 && this.avgFramePointNumber <= 2) {
-        lineType = '1';
+        lineType = '2';
       } else if (this.avgFramePointNumber <= 1) {
         lineType = '1';
       }
     }
 
-    if (lineType == '1' && this.avgFramePointNumber > 1) {
+    //对framePointMaxNumber大于等于2而且this.avgFramePointNumber小于等于2的目标一帧中的多个点合并为1个点
+    if (false && lineType == '1' && this.avgFramePointNumber > 1) {
 
       for (HoughFrame hf : this.frameList) {
         int tnum = hf.pointList.size();
@@ -130,7 +146,7 @@ public class LineObject {
           avgX /= tnum;
           avgY /= tnum;
           HoughtPoint fp = hf.pointList.get(0);
-          HoughtPoint thp = new HoughtPoint(fp.getpIdx(), fp.getFrameNumber(), avgX.floatValue(), avgY.floatValue(), fp.getDateUtc());
+          HoughtPoint thp = new HoughtPoint(fp.getpIdx(), fp.getFrameNumber(), avgX.floatValue(), avgY.floatValue(), fp.getDateUtc(), fp.getOorId());
 
           for (HoughtPoint hp : hf.pointList) {
             for (int k = 0; k < this.pointList.size(); k++) {
@@ -193,16 +209,22 @@ public class LineObject {
     updateInfo();
   }
 
-  public boolean isOnLine(OT1 ot1) {
+  public boolean isOnLine(OtObserveRecord ot1) {
 
     boolean isOnLine = false;
     double preYDiff = Math.abs(ot1.getY() - preNextYByX(ot1.getX()));
     if (preYDiff < 10) {
       if (this.framePointMaxNumber > 2) {
-        isOnLine = true;
+        if (this.frameList.size() >= 2 && ot1.getFfNumber() != this.lastFrameNumber) {
+          float xDelta = ot1.getX() - lastPoint.getX();
+          float yDelta = ot1.getY() - lastPoint.getY();
+          isOnLine = (xDelta * deltaX > 0) && (yDelta * deltaY > 0);
+        } else {
+          isOnLine = true;
+        }
       } else {
-        double preXDiff = Math.abs(ot1.getX() - preNextXByT(ot1.getDate().getTime()));
-        double preYDiff2 = Math.abs(ot1.getY() - preNextYByT(ot1.getDate().getTime()));
+        double preXDiff = Math.abs(ot1.getX() - preNextXByT(ot1.getDateUt().getTime()));
+        double preYDiff2 = Math.abs(ot1.getY() - preNextYByT(ot1.getDateUt().getTime()));
         if (preXDiff < 10 && preYDiff2 < 10) {
           isOnLine = true;
         }
@@ -211,8 +233,8 @@ public class LineObject {
     return isOnLine;
   }
 
-  public void addPoint(int pIdx, int frameNumber, float x, float y, Date dateUtc) {
-    this.addPoint(new HoughtPoint(pIdx, frameNumber, x, y, dateUtc));
+  public void addPoint(int pIdx, int frameNumber, float x, float y, Date dateUtc, long oorId) {
+    this.addPoint(new HoughtPoint(pIdx, frameNumber, x, y, dateUtc, oorId));
   }
 
   /**
@@ -293,6 +315,9 @@ public class LineObject {
   public void getDelta() {
 
     if (frameList.size() > 1) {
+
+      updateTheta();
+
       HoughFrame firstFrame = frameList.get(0);
       HoughFrame lastFrame = frameList.get(frameList.size() - 1);
       HoughtPoint ffMinPoint, lfMinPoint;
@@ -312,6 +337,28 @@ public class LineObject {
       HoughFrame firstFrame = frameList.get(0);
       deltaX = firstFrame.deltaX;
       deltaY = firstFrame.deltaY;
+    }
+  }
+
+  public void updateTheta() {
+
+    if (this.pointNumber >= 2) {
+      HoughtPoint fPoint = pointList.get(0);
+      HoughtPoint lPoint = pointList.get(this.pointNumber - 1);
+
+      double xDelta = fPoint.getX() - lPoint.getX();
+      double yDelta = fPoint.getY() - lPoint.getY();
+      float ktheta = (float) (Math.atan2(yDelta, xDelta));
+
+      if (ktheta < 0) {
+        ktheta += Math.PI;
+      }
+
+      if (ktheta < Math.PI / 2) {
+        this.theta = (float) (ktheta + Math.PI / 2);
+      } else {
+        this.theta = (float) (ktheta - Math.PI / 2);
+      }
     }
   }
 
@@ -455,7 +502,7 @@ public class LineObject {
     return rst;
   }
 
-  public void printInfo(ArrayList<OT1> historyOT1s) {
+  public void printInfo(ArrayList<OtObserveRecord> historyOT1s) {
 
     int i = 1;
     for (HoughFrame tFrame : frameList) {
@@ -472,28 +519,6 @@ public class LineObject {
     int i = 0;
     for (HoughtPoint tPoint : pointList) {
       System.out.println(tPoint.getAllInfo());
-      i++;
-    }
-  }
-
-  public void printOT1Info2(ArrayList<OT1> historyOT1s) {
-
-    int i = 0;
-    for (HoughFrame tFrame : frameList) {
-      for (HoughtPoint tPoint : tFrame.pointList) {
-        OT1 ot1 = historyOT1s.get(tPoint.getpIdx());
-        ot1.printInfo();
-        i++;
-      }
-    }
-  }
-
-  public void printOT1Info(ArrayList<OT1> historyOT1s) {
-
-    int i = 0;
-    for (HoughtPoint tPoint : pointList) {
-      OT1 ot1 = historyOT1s.get(tPoint.getpIdx());
-      ot1.printInfo();
       i++;
     }
   }

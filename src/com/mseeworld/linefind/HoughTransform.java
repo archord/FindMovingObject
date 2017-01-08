@@ -3,19 +3,13 @@
  */
 package com.mseeworld.linefind;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
+import com.gwac.model.OtObserveRecord;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,8 +26,8 @@ public class HoughTransform {
   // the number of points that have been added 
   protected int numOT1s;
   HoughLine[][] houghArray;
-  ArrayList<OT1> historyOT1s;
-  ArrayList<LineObject> mvObjs;
+  ArrayList<OtObserveRecord> historyOT1s;
+  public ArrayList<LineObject> mvObjs;
   ArrayList<LineObject> fastObjs;
   ArrayList<LineObject> singleFrameObjs;
   
@@ -131,12 +125,12 @@ public class HoughTransform {
     
   }
   
-  public void historyAddPoint(OT1 ot1) {
+  public void historyAddPoint(OtObserveRecord ot1) {
     historyOT1s.add(ot1);
     numOT1s++;
   }
   
-  public void houghAddPoint(OT1 ot1) {
+  public void houghAddPoint(OtObserveRecord ot1) {
     
     for (int t = 0; t < thetaSize; t++) {
       
@@ -149,11 +143,11 @@ public class HoughTransform {
       }
       
       HoughLine tline = houghArray[t][r];
-      int curNumber = ot1.getFrameNumber();
+      int curNumber = ot1.getFfNumber();
       tline.removeOldFrame(curNumber - this.maxHoughFrameNunmber);
       
       if (tline.matchLastPoint(ot1, maxDistance)) {
-        tline.addPoint(numOT1s - 1, curNumber, ot1.getX(), ot1.getY(), ot1.getDate());
+        tline.addPoint(numOT1s - 1, curNumber, ot1.getX(), ot1.getY(), ot1.getDateUt(), ot1.getOorId());
         if (tline.validSize() >= this.minValidPoint) {
           double tsigma = tline.lineRegression();
           if ((tsigma < 2 && tline.validSize() >= this.minValidPoint) || (tline.validSize() >= 10)) {
@@ -169,15 +163,15 @@ public class HoughTransform {
     
   }
 
-  public void lineAddPoint(OT1 ot1) {
+  public void lineAddPoint(OtObserveRecord ot1) {
     
     boolean findLine = false;
     int i = 0;
     for (LineObject tline : this.mvObjs) {
       
-      if (!tline.isEndLine(ot1.getFrameNumber() - this.maxHoughFrameNunmber + 1)) {
+      if (!tline.isEndLine(ot1.getFfNumber()- this.maxHoughFrameNunmber + 1)) {
         if (tline.isOnLine(ot1)) {
-          tline.addPoint(numOT1s - 1, ot1.getFrameNumber(), ot1.getX(), ot1.getY(), ot1.getDate());
+          tline.addPoint(numOT1s - 1, ot1.getFfNumber(), ot1.getX(), ot1.getY(), ot1.getDateUt(), ot1.getOorId());
           findLine = true;
           break;
         }
@@ -188,19 +182,19 @@ public class HoughTransform {
     }
   }
   
-  public void lineAddPoint2(OT1 ot1) {
+  public void lineAddPoint2(OtObserveRecord ot1) {
     
     boolean findLine = false;
     int i = 0;
     for (LineObject tline : this.mvObjs) {
       
-      if (!tline.isEndLine(ot1.getFrameNumber() - this.maxHoughFrameNunmber + 1)) {
+      if (!tline.isEndLine(ot1.getFfNumber() - this.maxHoughFrameNunmber + 1)) {
         double preYDiff = Math.abs(ot1.getY() - tline.preNextYByX(ot1.getX()));
         if (preYDiff < 10) {
-          double preXDiff = Math.abs(ot1.getX() - tline.preNextXByT(ot1.getDate().getTime()));
-          double preYDiff2 = Math.abs(ot1.getY() - tline.preNextYByT(ot1.getDate().getTime()));
+          double preXDiff = Math.abs(ot1.getX() - tline.preNextXByT(ot1.getDateUt().getTime()));
+          double preYDiff2 = Math.abs(ot1.getY() - tline.preNextYByT(ot1.getDateUt().getTime()));
           if (preXDiff < 10 && preYDiff2 < 10) {
-            tline.addPoint(numOT1s - 1, ot1.getFrameNumber(), ot1.getX(), ot1.getY(), ot1.getDate());
+            tline.addPoint(numOT1s - 1, ot1.getFfNumber(), ot1.getX(), ot1.getY(), ot1.getDateUt(), ot1.getOorId());
             findLine = true;
             break;
           }
@@ -222,13 +216,6 @@ public class HoughTransform {
       if (!tmo.endLine) {
         tmo.isEndLine(Integer.MAX_VALUE);
       }
-      if (tmo.frameList.size() == 1) {
-        singleFrameObjs.add(tmo);
-      }
-    }
-    
-    for (LineObject tmo : this.singleFrameObjs) {
-      mvObjs.remove(tmo);
     }
     
   }
@@ -279,7 +266,7 @@ public class HoughTransform {
         out.write("pIdx\t fmNum\t x\t y\t xDelta\t yDelta\t fnDelta\t timeDelta\t xSpeedt\t ySpeedt\t preX\t preY\t preDeltaX\t preDeltaY\n".getBytes());
         int i = 0;
         for (HoughtPoint tPoint : mvObj.pointList) {
-//          OT1 tp = this.historyOT1s.get(tPoint.getpIdx());
+//          OtObserveRecord tp = this.historyOT1s.get(tPoint.getpIdx());
 //              out.write(String.format("%4d, %s, %10.6f, %10.6f, %11.6f, %11.6f, %6.3f\n", 
 //                      tp.number, tp.dateStr, tp.ra, tp.dec, tp.x, tp.y, tp.mag).getBytes());
 //          out.write(String.format("%4d\t%s\t%10.6f\t%10.6f\t%11.6f\t%11.6f\t%6.3f\n",
@@ -302,73 +289,5 @@ public class HoughTransform {
       j++;
     }
   }
-  
-  public void saveLine2(String fpath) {
     
-    File root = new File(fpath);
-    if (!root.exists()) {
-      root.mkdirs();
-    }
-    
-    int j = 0;
-    for (LineObject mvObj : mvObjs) {
-      if (mvObj.pointNumber < validLineMinPoint) {
-        j++;
-        continue;
-      }
-      String fname = fpath + String.format("1f1p_%04d_%04d_%04d.txt", j, mvObj.frameList.size(), mvObj.pointNumber);
-      saveLineObj(mvObj, fname);
-      j++;
-    }
-    
-    j = 0;
-    for (LineObject mvObj : fastObjs) {
-      if (mvObj.pointNumber < validLineMinPoint) {
-        j++;
-        continue;
-      }
-      String fname = fpath + String.format("1fnp_%04d_%04d_%04d.txt", j, mvObj.frameList.size(), mvObj.pointNumber);
-      saveLineObj(mvObj, fname);
-      j++;
-    }
-    
-    j = 0;
-    for (LineObject mvObj : singleFrameObjs) {
-      if (mvObj.pointNumber < validLineMinPoint) {
-        j++;
-        continue;
-      }
-      String fname = fpath + String.format("1f00_%04d_%04d_%04d.txt", j, mvObj.frameList.size(), mvObj.pointNumber);
-      saveLineObj(mvObj, fname);
-      j++;
-    }
-  }
-  
-  public void saveLineObj(LineObject lineObj, String fname) {
-    
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy MM dd HH mm ss SSS");
-    FileOutputStream out = null;
-    
-    try {
-      out = new FileOutputStream(new File(fname));
-      int i = 1;
-      for (HoughtPoint tPoint : lineObj.pointList) {
-        OT1 tp = this.historyOT1s.get(tPoint.getpIdx());
-        out.write((tp.getStr(i, sdf) + "\n").getBytes());
-        i++;
-      }
-      out.close();
-      
-    } catch (FileNotFoundException ex) {
-      Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
-    } catch (IOException ex) {
-      Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
-    } finally {
-      try {
-        out.close();
-      } catch (IOException ex) {
-        Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
-      }
-    }
-  }
 }

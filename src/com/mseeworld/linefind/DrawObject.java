@@ -3,6 +3,7 @@
  */
 package com.mseeworld.linefind;
 
+import com.gwac.model.OtObserveRecord;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -102,8 +103,13 @@ public class DrawObject {
 //      if (!(mvObj.framePointMaxNumber > 2 && mvObj.avgFramePointNumber > 2)) {
 //      if (!(mvObj.framePointMaxNumber > 2 && mvObj.avgFramePointNumber <= 2)) {
 //      if (!(mvObj.framePointMaxNumber <= 2 &&mvObj.avgFramePointNumber > 1 && mvObj.avgFramePointNumber <= 2)) {
-      if (!(mvObj.avgFramePointNumber <= 1)) {
-//      if (mvObj.avgFramePointNumber > 2) {
+//      if (!(mvObj.avgFramePointNumber <= 1)) {
+      if (mvObj.pointNumber < ht.minValidPoint) {
+        this.drawIdx++;
+        continue;
+      }
+
+      if (!mvObj.isValidLine()) {
         this.drawIdx++;
         continue;
       }
@@ -159,8 +165,8 @@ public class DrawObject {
       drawStr = "" + (this.drawIdx);
       g2d.drawString(drawStr, (int) lastOT1.getX() + pointSize, (int) lastOT1.getY() + pointSize);
 
-      String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
-      System.out.println(debugStr);
+//      String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
+//      System.out.println(debugStr);
 //      mvObj.analysis();
 //      mvObj.updateInfo();
 //      mvObj.statistic();
@@ -193,7 +199,7 @@ public class DrawObject {
     g2d.setColor(Color.RED);
     int pointSize2 = 6;
 
-    for (OT1 ot1 : ht.historyOT1s) {
+    for (OtObserveRecord ot1 : ht.historyOT1s) {
       int x = (int) (ot1.getX() - pointSize2 / 2);
       int y = (int) (ot1.getY() - pointSize2 / 2);
       g2d.drawRect(x, y, pointSize2, pointSize2);

@@ -16,6 +16,7 @@ public class HoughtPoint implements Comparable, Cloneable {
   private float x;
   private float y;
   private Date dateUtc;
+  private long oorId;
 
   public void prePos(HoughtPoint tPoint) {
   }
@@ -26,14 +27,14 @@ public class HoughtPoint implements Comparable, Cloneable {
     return tstr;
   }
 
-  public HoughtPoint(int pIdx, int frameNumber,float x, float y, Date dateUtc) {
+  public HoughtPoint(int pIdx, int frameNumber, float x, float y, Date dateUtc, long oorId) {
     this.pIdx = pIdx;
     this.frameNumber = frameNumber;
     this.x = x;
     this.y = y;
     this.dateUtc = dateUtc;
+    this.oorId = oorId;
   }
-
 
   /**
    * @return the pIdx
@@ -110,7 +111,6 @@ public class HoughtPoint implements Comparable, Cloneable {
     return super.clone();
   }
 
-
   /**
    * @return the dateUtc
    */
@@ -123,6 +123,20 @@ public class HoughtPoint implements Comparable, Cloneable {
    */
   public void setDateUtc(Date dateUtc) {
     this.dateUtc = dateUtc;
+  }
+
+  /**
+   * @return the oorId
+   */
+  public long getOorId() {
+    return oorId;
+  }
+
+  /**
+   * @param oorId the oorId to set
+   */
+  public void setOorId(long oorId) {
+    this.oorId = oorId;
   }
 
 }

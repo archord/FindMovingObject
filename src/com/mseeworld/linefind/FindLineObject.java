@@ -3,6 +3,7 @@
  */
 package com.mseeworld.linefind;
 
+import com.gwac.model.OtObserveRecord;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -17,6 +18,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,9 +33,19 @@ import org.apache.commons.math3.stat.regression.SimpleRegression;
  */
 public class FindLineObject {
 
-  int imgWidth = 3072;
-  int imgHeight = 3072;
-  ArrayList<OT1> ot1list = new ArrayList();
+  private int imgWidth = 3072;
+  private int imgHeight = 3072;
+  private int thetaSize = 180;
+  private int rhoSize = 100;
+  private int thetaRange = 36;
+  private int rhoRange = 10;
+  private int maxHoughFrameNunmber = 30;
+  private int validLineMinPoint = 5;
+  private float maxDistance = 100;
+  private int minValidPoint = 5;
+  private float rhoErrorTimes = (float) 0.2; //0.2
+
+  ArrayList<OtObserveRecord> ot1list = new ArrayList();
 
   /**
    * @param args the command line arguments
@@ -47,60 +59,54 @@ public class FindLineObject {
   }
 
   public void findMovingObject() {
-    int thetaSize = 180;
-    int rhoSize = 100;
-    int thetaRange = 36;
-    int rhoRange = 10;
-    int maxHoughFrameNunmber = 30;
-    int validLineMinPoint = 5;
-    float maxDistance = 100;
-    int minValidPoint = 5;
-    float rhoErrorTimes = (float) 0.2; //0.2
 
-//    String[] dates = {"151218-2-34","151218-3-5", "151218-3-36", "151218-6-12",
-//      "151218-6-13", "151218-7-15", "151218-8-15", "151218-9-21", "151218-11-34"};
-    //debug2line  151218-2-34 debug-line-114-120 160928-12-5
 //    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
 //      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
-//    String[] dates = {"160928-12-5"};
-    String[] dates = {"161128-6-3"};
+    String[] dates = {"170103-5-5"}; //170103-5-5  170103-4-32
 
     for (String tname : dates) {
       ot1list.clear();
       System.out.println("process " + tname);
 
-      HoughTransform ht = new HoughTransform(imgWidth, imgHeight, thetaSize, rhoSize, thetaRange, rhoRange, maxHoughFrameNunmber, minValidPoint, maxDistance, rhoErrorTimes, validLineMinPoint);
-
-      String ot1File = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + ".txt";
-      String outImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-outline-all-speed.png";
-      String outImage2 = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-outline-singleframe.png";
-      String outImagePoint = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-list\\" + tname + "-point-all.png";
-      String houghImage = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\" + tname + "\\hough.png";
-      String outPath = "E:\\work\\program\\java\\netbeans\\JavaApplication2\\resources\\160928-source-result\\" + tname + "\\";
+      String ot1File = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170103\\" + tname + ".txt";
+      String outImagePoint = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170103\\" + tname + "-point-all.png";
 
       getOT1(ot1File);
 //      drawPoint(outImagePoint);
 
-      int lastFrameNumber = 0;
-      int frameCount = 0;
-      int pNum = 0;
-      for (OT1 ot1 : ot1list) {
-        if (lastFrameNumber != ot1.getFrameNumber()) {
-          lastFrameNumber = ot1.getFrameNumber();
-          ht.endFrame();
-        }
-        ht.historyAddPoint(ot1);
-        ht.lineAddPoint(ot1);
-
-        pNum++;
-      }
-
-      ht.endAllFrame();
-//      ht.saveLine2(outPath);
-
-      DrawObject dObj = new DrawObject(ht);
-      dObj.drawObjsAll(outImage);
+      processOneDay(ot1list, tname, 0, 0);
     }
+  }
+
+  public void processOneDay(List<OtObserveRecord> oors, String dateStr, int dpmId, int skyId) {
+
+    HoughTransform ht = new HoughTransform(imgWidth, imgHeight, thetaSize, rhoSize, thetaRange, rhoRange, maxHoughFrameNunmber, minValidPoint, maxDistance, rhoErrorTimes, validLineMinPoint);
+
+    int lastFrameNumber = 0;
+    int frameCount = 0;
+    int pNum = 0;
+    for (OtObserveRecord oor : oors) {
+      oor.setX(oor.getXTemp());
+      oor.setY(oor.getYTemp());
+      if (lastFrameNumber != oor.getFfNumber()) {
+        lastFrameNumber = oor.getFfNumber();
+        ht.endFrame();
+      }
+      ht.historyAddPoint(oor);
+      ht.lineAddPoint(oor);
+      pNum++;
+    }
+
+    ht.endAllFrame();
+
+//    for (LineObject obj : ht.mvObjs) {
+//      if (obj.pointNumber >= validLineMinPoint && obj.isValidLine()) {
+//        saveLineObject(obj, dateStr, dpmId, skyId);
+//      }
+//    }
+    String imgPath = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + ".png";
+    DrawObject dObj = new DrawObject(ht);
+    dObj.drawObjsAll(imgPath);
   }
 
   public void fitTest() {
@@ -113,7 +119,7 @@ public class FindLineObject {
       getOT1(ot1File);
 
       SimpleRegression reg = new SimpleRegression();
-      for (OT1 ot1 : ot1list) {
+      for (OtObserveRecord ot1 : ot1list) {
         reg.addData(ot1.getX(), ot1.getY());
       }
       double sigma = Math.sqrt(reg.getSumSquaredErrors() / (ot1list.size() - 1));
@@ -123,7 +129,7 @@ public class FindLineObject {
 //      while (sigma < sigma2) {
 //        System.out.println("regression " + idx++);
 //        for (int i = 0; i < ot1list.size();) {
-//          OT1 ot1 = ot1list.get(i);
+//          OtObserveRecord ot1 = ot1list.get(i);
 //          float preY = (float) reg.predict(ot1.getX());
 //          double ydiff = preY - ot1.getY();
 //          if ((Math.abs(ydiff) > 2 * sigma)) {
@@ -141,10 +147,10 @@ public class FindLineObject {
 //        }
 //      }
 
-      for (OT1 ot1 : ot1list) {
+      for (OtObserveRecord ot1 : ot1list) {
         float preY = (float) reg.predict(ot1.getX());
         double ydiff = preY - ot1.getY();
-        System.out.println(ot1.getFrameNumber() + ": " + ot1.getX() + "\t" + ot1.getY() + "\t"
+        System.out.println(ot1.getFfNumber() + ": " + ot1.getX() + "\t" + ot1.getY() + "\t"
                 + preY + "\t" + ydiff + "\t" + (Math.abs(ydiff) < 2 * sigma) + "\t" + (Math.abs(ydiff) < 3 * sigma));
       }
     }
@@ -166,8 +172,8 @@ public class FindLineObject {
       PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
 
       int num = 0;
-      for (OT1 ot1 : ot1list) {
-        long t = ot1.getDate().getTime();
+      for (OtObserveRecord ot1 : ot1list) {
+        long t = ot1.getDateUt().getTime();
         objs1.add(ot1.getX(), ot1.getY());
         objs2.add(t, ot1.getY());
         objs3.add(t, ot1.getX());
@@ -185,7 +191,7 @@ public class FindLineObject {
             System.out.println("**********");
           }
           String rst = String.format("%5d %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f",
-                  ot1.getFrameNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
+                  ot1.getFfNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
           System.out.println(rst);
         }
         num++;
@@ -209,8 +215,8 @@ public class FindLineObject {
       PolynomialCurveFitter fitter = PolynomialCurveFitter.create(2);
 
       int num = 0;
-      for (OT1 ot1 : ot1list) {
-        long t = ot1.getDate().getTime();
+      for (OtObserveRecord ot1 : ot1list) {
+        long t = ot1.getDateUt().getTime();
         if (num >= 5) {
           final double[] coeff1 = fitter.fit(objs1.toList());
           final double[] coeff2 = fitter.fit(objs2.toList());
@@ -233,7 +239,7 @@ public class FindLineObject {
             objs3.add(t, ot1.getX());
           }
           String rst = String.format("%5d %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f %9.4f",
-                  ot1.getFrameNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
+                  ot1.getFfNumber(), ot1.getX(), ot1.getY(), preY1, ydiff1, preY2, ydiff2, preX1, xdiff1);
           System.out.println(rst);
         } else {
           objs1.add(ot1.getX(), ot1.getY());
@@ -271,7 +277,7 @@ public class FindLineObject {
       String tempString = null;
       int tline = 0;
       int tline2 = 0;
-      int tlen = "2016/19/28 13:49:37".length();
+      int tlen = "2017/1/3 15:54:17".length();
       //2318.9	381.724	170.284	4.01298	2015/12/18 18:25:28	10.7607	1777	34	1626.55	2273.18
       while ((tempString = reader.readLine()) != null) {
         if (tempString.isEmpty()) {
@@ -286,8 +292,6 @@ public class FindLineObject {
         int number = Integer.parseInt(tstr[6]);
         float xTemp = Float.parseFloat(tstr[8]);
         float yTemp = Float.parseFloat(tstr[9]);
-//        float xTemp = 0;
-//        float yTemp = 0;
         Date tdate = null;
         if (tstr[4].trim().length() == tlen) {
           tdate = sdf.parse(tstr[4]);
@@ -295,16 +299,21 @@ public class FindLineObject {
           tdate = sdf2.parse(tstr[4]);
         }
 
-//        if (!(x > 2345 && x < 2370 && y > 715 && y < 750)) {
-//        ot1list.add(new OT1(number, x, y, xTemp, yTemp, ra, dec, mag, tdate, tstr[4]));
-        ot1list.add(new OT1(number, xTemp, yTemp, x, y, ra, dec, mag, tdate, tstr[4]));
+        OtObserveRecord ot1 = new OtObserveRecord();
+        ot1.setX(xTemp);
+        ot1.setY(yTemp);
+        ot1.setRaD(ra);
+        ot1.setDecD(dec);
+        ot1.setMagAper(mag);
+        ot1.setFfNumber(number);
+        ot1.setXTemp(x);
+        ot1.setYTemp(y);
+        ot1.setDateUt(tdate);
+
+        ot1list.add(ot1);
         tline++;
-//        } else {
-//          tline2++;
-//        }
       }
       reader.close();
-//      System.out.println("total points:" + tline + ", remove:" + tline2);
 
     } catch (IOException e) {
       e.printStackTrace();
@@ -331,7 +340,7 @@ public class FindLineObject {
     g2d.setColor(Color.RED);
     int pointSize2 = 6;
 
-    for (OT1 ot1 : ot1list) {
+    for (OtObserveRecord ot1 : ot1list) {
       int x = (int) (ot1.getX() - pointSize2 / 2);
       int y = (int) (ot1.getY() - pointSize2 / 2);
       g2d.drawRect(x, y, pointSize2, pointSize2);
@@ -367,8 +376,8 @@ public class FindLineObject {
     getOT1(ot1File);
 
     for (int i = 0; i < ot1list.size() - 1; i++) {
-      OT1 ot1 = ot1list.get(i);
-      OT1 ot2 = ot1list.get(i + 1);
+      OtObserveRecord ot1 = ot1list.get(i);
+      OtObserveRecord ot2 = ot1list.get(i + 1);
       float rho = -1;
       float theta = 0;
       if (i <= 9) {
@@ -412,7 +421,7 @@ public class FindLineObject {
 //      float rho2 = (float) ((ot1.getX()) * Math.cos(theta2) + (ot1.getY()) * Math.sin(theta2));
       float rho2 = getRho(ot1.getX(), ot1.getY(), imgWidth / 2, imgWidth / 2, theta2);
       System.out.println(String.format("%4d %5d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f",
-              i, ot1.getFrameNumber(), ot1.getX(), ot1.getY(), rho, rho2,
+              i, ot1.getFfNumber(), ot1.getX(), ot1.getY(), rho, rho2,
               theta, ktheta * 180 / Math.PI, theta2 * 180 / Math.PI));
     }
   }
@@ -439,8 +448,8 @@ public class FindLineObject {
 //      if (i > 10) {
 //        break;
 //      }
-      OT1 ot1 = ot1list.get(i);
-      ht.houghAddPoint(ot1);
+      OtObserveRecord ot1 = ot1list.get(i);
+//      ht.houghAddPoint(ot1);
     }
     ht.drawHoughImage(houghImage);
   }
@@ -449,4 +458,5 @@ public class FindLineObject {
     float rho = (float) ((((x - cenX) * Math.cos(theta)) + ((y - cenY) * Math.sin(theta)) + 2172.232));
     return rho;
   }
+
 }
