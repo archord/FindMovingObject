@@ -45,7 +45,7 @@ public class DrawObject {
   public void drawObjsAll(String fName) {
 
 //    Integer idxArray[] = {14, 16, 19, 20, 6, 10, 23, 40, 43, 47};
-//    Integer idxArray[] = {39}; //   8 85 40 153, 121,123,127
+//    Integer idxArray[] = {68}; //   8 85 40 153, 121,123,127
     Integer idxArray[] = {};
     idxList = new ArrayList(Arrays.asList(idxArray));
 
@@ -193,10 +193,10 @@ public class DrawObject {
 
       String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
       System.out.println(debugStr);
-//
+
 //      System.out.println("movObj record list\n");
-//      mvObj.printInfo2();
 //      mvObj.printOT1Info(ht.historyOT1s);
+//      mvObj.printInfo2();
       this.drawIdx++;
 
     }
