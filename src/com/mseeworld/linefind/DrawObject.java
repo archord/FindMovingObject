@@ -45,7 +45,7 @@ public class DrawObject {
   public void drawObjsAll(String fName) {
 
 //    Integer idxArray[] = {14, 16, 19, 20, 6, 10, 23, 40, 43, 47};
-//    Integer idxArray[] = {13, 14, 15, 20}; // 14, 16, 19, 20; 6, 10, 23; 40, 43, 47;15,17,21,22,23
+//    Integer idxArray[] = {166, 165}; //   8 85 40 153, 121,123,127
     Integer idxArray[] = {};
     idxList = new ArrayList(Arrays.asList(idxArray));
 
@@ -100,16 +100,17 @@ public class DrawObject {
 
     for (LineObject mvObj : lineObjs) {
 
-//      if (!(mvObj.framePointMaxNumber > 2 && mvObj.avgFramePointNumber > 2)) {
-//      if (!(mvObj.framePointMaxNumber > 2 && mvObj.avgFramePointNumber <= 2)) {
-//      if (!(mvObj.framePointMaxNumber <= 2 &&mvObj.avgFramePointNumber > 1 && mvObj.avgFramePointNumber <= 2)) {
-//      if (!(mvObj.avgFramePointNumber <= 1)) {
       if (mvObj.pointNumber < ht.validLineMinPoint) {
         this.drawIdx++;
         continue;
       }
 
       if (!mvObj.isValidLine()) {
+        this.drawIdx++;
+        continue;
+      }
+
+      if (mvObj.avgFramePointNumber <= 2) {
         this.drawIdx++;
         continue;
       }
@@ -128,24 +129,47 @@ public class DrawObject {
       int y1 = (int) firstOT1.getY();
       int x2 = (int) lastOT1.getX();
       int y2 = (int) lastOT1.getY();
+      String drawStr = "";
 
       if (mvObj.frameList.size() == 1) {
-        g2d.setColor(Color.BLACK);
-        g2d.setStroke(bs3);
-      } else if (mvObj.avgFramePointNumber > 2) {
         g2d.setColor(Color.RED);
+        g2d.setStroke(bs3);
+        g2d.drawLine(x1, y1, x2, y2);
+        drawStr = "" + (this.drawIdx);
+        g2d.drawString(drawStr, (int) lastOT1.getX() + pointSize, (int) lastOT1.getY() + pointSize);
+      } else if (mvObj.avgFramePointNumber > 2) {
+        g2d.setColor(colors[this.drawIdx % colorLength]);
         g2d.setStroke(bs2);
+        for (HoughFrame tFrame : mvObj.frameList) {
+          HoughtPoint minObj;
+          HoughtPoint maxObj;
+          if (Math.abs(tFrame.deltaX) > Math.abs(tFrame.deltaY)) {
+            minObj = tFrame.minX;
+            maxObj = tFrame.maxX;
+          } else {
+            minObj = tFrame.minY;
+            maxObj = tFrame.maxY;
+          }
+          x1 = (int) minObj.getX();
+          y1 = (int) minObj.getY();
+          x2 = (int) maxObj.getX();
+          y2 = (int) maxObj.getY();
+          g2d.drawLine(x1, y1, x2, y2);
+          drawStr = "" + (this.drawIdx);
+          g2d.drawString(drawStr, (int) x2 + pointSize, (int) y2 + pointSize);
+        }
       } else {
         g2d.setColor(colors[this.drawIdx % colorLength]);
         g2d.setStroke(bs);
+        g2d.drawLine(x1, y1, x2, y2);
+        drawStr = "" + (this.drawIdx);
+        g2d.drawString(drawStr, (int) lastOT1.getX() + pointSize, (int) lastOT1.getY() + pointSize);
       }
 
-      g2d.drawLine(x1, y1, x2, y2);
       g2d.setStroke(bs3);
       g2d.drawRect(x1 - pointSize / 2, y1 - pointSize / 2, pointSize, pointSize);
       g2d.drawRect(x2 - pointSize / 2, y2 - pointSize / 2, pointSize, pointSize);
 
-      String drawStr = "";
       g2d.setStroke(bs2);
 
       for (HoughFrame tFrame : mvObj.frameList) {
@@ -162,22 +186,13 @@ public class DrawObject {
       g2d.setColor(Color.BLACK);
       g2d.setFont(font1);
 //      drawStr = "" + (j) + "," + (mvObj.lastPoint.getFrameNumber());
-      drawStr = "" + (this.drawIdx);
-      g2d.drawString(drawStr, (int) lastOT1.getX() + pointSize, (int) lastOT1.getY() + pointSize);
 
-//      String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
-//      System.out.println(debugStr);
-//      mvObj.analysis();
-//      mvObj.updateInfo();
-//      mvObj.statistic();
-//      mvObj.findFirstAndLastPoint();
-//      debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
-//      System.out.println(debugStr);
-//      System.out.println("***");
-//
-//      System.out.println("pIdx\t frameNumber\t x\t y\t xDelta\t yDelta\t fnDelta\t timeDelta\t xSpeedfn\t ySpeedt\t preX\t preY\t preDeltaX\t preDeltaY\n");
-//      mvObj.printInfo2();
+      String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
+      System.out.println(debugStr);
+
+//      System.out.println("movObj record list\n");
 //      mvObj.printOT1Info(ht.historyOT1s);
+//      mvObj.printInfo2();
       this.drawIdx++;
 
     }

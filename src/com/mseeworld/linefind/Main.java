@@ -48,11 +48,10 @@ public class Main {
 
 //    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
 //      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
-    String[] dates = {"170108-1-12"}; //170108-1-12 170108-8-30
+    String[] dates = {"170108-8-30"}; //170108-1-12 170108-8-30
 
     for (String tname : dates) {
       ot1list.clear();
-      System.out.println("process " + tname);
 
       String ot1File = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170108\\" + tname + ".txt";
       String outImagePoint = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170108\\" + tname + "-point-all.png";
