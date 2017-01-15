@@ -25,12 +25,12 @@ public class DrawObject {
 
   private final int colorLength = 1000;
   private final Color colors[]; //colors array for draw line on Descartes Coordinate 
-  private final HoughTransform ht;
+  private final FindMoveObject ht;
   private int drawIdx;
   private ArrayList<Integer> idxList;
   private int outNum = 0;
 
-  public DrawObject(HoughTransform ht) {
+  public DrawObject(FindMoveObject ht) {
 
     this.drawIdx = 0;
     this.ht = ht;
@@ -83,7 +83,7 @@ public class DrawObject {
     try {
       javax.imageio.ImageIO.write(image, "png", new File(fName));
     } catch (IOException ex) {
-      Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
+      Logger.getLogger(FindMoveObject.class.getName()).log(Level.SEVERE, null, ex);
     }
   }
 
@@ -104,7 +104,7 @@ public class DrawObject {
 //      if (!(mvObj.framePointMaxNumber > 2 && mvObj.avgFramePointNumber <= 2)) {
 //      if (!(mvObj.framePointMaxNumber <= 2 &&mvObj.avgFramePointNumber > 1 && mvObj.avgFramePointNumber <= 2)) {
 //      if (!(mvObj.avgFramePointNumber <= 1)) {
-      if (mvObj.pointNumber < ht.minValidPoint) {
+      if (mvObj.pointNumber < ht.validLineMinPoint) {
         this.drawIdx++;
         continue;
       }
@@ -208,7 +208,7 @@ public class DrawObject {
     try {
       javax.imageio.ImageIO.write(image, "png", new File(fName));
     } catch (IOException ex) {
-      Logger.getLogger(HoughTransform.class.getName()).log(Level.SEVERE, null, ex);
+      Logger.getLogger(FindMoveObject.class.getName()).log(Level.SEVERE, null, ex);
     }
   }
 }
