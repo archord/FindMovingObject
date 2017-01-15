@@ -63,14 +63,14 @@ public class FindLineObject {
 
 //    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
 //      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
-    String[] dates = {"170103-4-32"}; //170103-5-5  170103-4-32  170103-5-5-debug1 170103-4-32-verycurve
+    String[] dates = {"170108-1-12"}; //170108-1-12 170108-8-30
 
     for (String tname : dates) {
       ot1list.clear();
       System.out.println("process " + tname);
 
-      String ot1File = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170103\\" + tname + ".txt";
-      String outImagePoint = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170103\\" + tname + "-point-all.png";
+      String ot1File = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170108\\" + tname + ".txt";
+      String outImagePoint = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170108\\" + tname + "-point-all.png";
 
       getOT1(ot1File);
 //      drawPoint(outImagePoint);
@@ -81,6 +81,7 @@ public class FindLineObject {
 
   public void processOneDay(List<OtObserveRecord> oors, String dateStr, int dpmId, int skyId) {
 
+    System.out.println(dateStr+": "+ oors.size());
     HoughTransform ht = new HoughTransform(imgWidth, imgHeight, thetaSize, rhoSize, thetaRange, rhoRange, maxHoughFrameNunmber, minValidPoint, maxDistance, rhoErrorTimes, validLineMinPoint);
 
     int lastFrameNumber = 0;
@@ -362,14 +363,14 @@ public class FindLineObject {
         }
 
         OtObserveRecord ot1 = new OtObserveRecord();
-        ot1.setX(xTemp);
-        ot1.setY(yTemp);
+        ot1.setX(x);
+        ot1.setY(y);
         ot1.setRaD(ra);
         ot1.setDecD(dec);
         ot1.setMagAper(mag);
         ot1.setFfNumber(number);
-        ot1.setXTemp(xTemp);
-        ot1.setYTemp(yTemp);
+        ot1.setXTemp(x);
+        ot1.setYTemp(y);
         ot1.setDateUt(tdate);
         ot1.setDateStr(dateStr);
 
