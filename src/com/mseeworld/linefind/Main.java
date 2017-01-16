@@ -66,24 +66,23 @@ public class Main {
   public void processOneDay(List<OtObserveRecord> oors, String dateStr, int dpmId, int skyId) {
 
     System.out.println(dateStr + ": " + oors.size());
-    FindMoveObject ht = new FindMoveObject();
+    FindMoveObject fmo = new FindMoveObject();
 
     int lastFrameNumber = 0;
-    int frameCount = 0;
-    int pNum = 0;
+    List<OtObserveRecord> singleFrame = new ArrayList<>();
     for (OtObserveRecord oor : oors) {
       oor.setX(oor.getXTemp());
       oor.setY(oor.getYTemp());
       if (lastFrameNumber != oor.getFfNumber()) {
         lastFrameNumber = oor.getFfNumber();
-        ht.endFrame();
+        fmo.addFrame(singleFrame);
+        singleFrame.clear();
+      } else {
+        singleFrame.add(oor);
       }
-      ht.historyAddPoint(oor);
-      ht.lineAddPoint(oor);
-      pNum++;
     }
 
-    ht.endAllFrame();
+    fmo.endAllFrame();
 
 //    for (LineObject obj : ht.mvObjs) {
 //      if (obj.pointNumber >= validLineMinPoint && obj.isValidLine()) {
@@ -91,7 +90,7 @@ public class Main {
 //      }
 //    }
     String imgPath = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + ".png";
-    DrawObject dObj = new DrawObject(ht);
+    DrawObject dObj = new DrawObject(fmo);
     dObj.drawObjsAll(imgPath);
   }
 

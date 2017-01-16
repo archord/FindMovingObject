@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -102,6 +103,19 @@ public class FindMoveObject {
       }
     }
 
+  }
+
+  public void addFrame(List<OtObserveRecord> singleFrame) {
+
+    for (OtObserveRecord ot1 : singleFrame) {
+      this.historyAddPoint(ot1);
+      this.lineAddPoint(ot1);
+    }
+    this.endFrame();
+  }
+  
+  public void findSingleFrameLine(List<OtObserveRecord> singleFrame){
+    
   }
 
   public void historyAddPoint(OtObserveRecord ot1) {
