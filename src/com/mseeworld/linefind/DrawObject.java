@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,10 +43,11 @@ public class DrawObject {
     }
   }
 
-  public void drawObjsAll(String fName) {
+  public void drawObjsAll(String fName, char lineType) {
 
-//    Integer idxArray[] = {14, 16, 19, 20, 6, 10, 23, 40, 43, 47};
-//    Integer idxArray[] = {166, 165}; //   8 85 40 153, 121,123,127
+    this.drawIdx = 0;
+//    Integer idxArray[] = {57, 75, 99, 108, 113};
+//    Integer idxArray[] = {41}; // 
     Integer idxArray[] = {};
     idxList = new ArrayList(Arrays.asList(idxArray));
 
@@ -58,27 +60,8 @@ public class DrawObject {
     g2d.fillRect(0, 0, ht.imgWidth, ht.imgHeight);
     g2d.drawOval(ht.imgWidth - 40, ht.imgHeight - 40, 20, 20);
 
-    drawObjs(ht.mvObjs, g2d);
-    drawObjs(ht.fastObjs, g2d);
-    drawObjs(ht.singleFrameObjs, g2d);
-
-    int singleFrame = ht.singleFrameObjs.size();
-    int fastObjNum = ht.fastObjs.size();
-    int singlePoint = 0;
-    int multiPoint = 0;
-    for (LineObject mvObj : ht.mvObjs) {
-      if (mvObj.pointNumber < ht.validLineMinPoint) {
-        continue;
-      }
-      if (mvObj.avgFramePointNumber < 1.2) {
-        singlePoint++;
-      } else {
-        multiPoint++;
-      }
-    }
-    System.out.println("totalLine=" + (singleFrame + singlePoint + multiPoint + fastObjNum)
-            + ", singleFrame=" + singleFrame + ", fastObjNum=" + fastObjNum + ", singlePoint="
-            + singlePoint + ", multiPoint=" + multiPoint + ", outNum=" + outNum);
+    drawObjs(ht.mvObjs, g2d, lineType);
+    System.out.println("totalLine=" + ht.mvObjs.size() + ", draw line=" + outNum);
 
     try {
       javax.imageio.ImageIO.write(image, "png", new File(fName));
@@ -87,7 +70,7 @@ public class DrawObject {
     }
   }
 
-  public void drawObjs(ArrayList<LineObject> lineObjs, Graphics2D g2d) {
+  public void drawObjs(ArrayList<LineObject> lineObjs, Graphics2D g2d, char lineType) {
 
     BasicStroke bs = new BasicStroke(2);
     BasicStroke bs2 = new BasicStroke(4);
@@ -105,15 +88,28 @@ public class DrawObject {
         continue;
       }
 
-      if (!mvObj.isValidLine()) {
+//      if (!mvObj.isValidLine()) {
+//        this.drawIdx++;
+//        continue;
+//      }
+//      if ((mvObj.avgFramePointNumber > 2)) {
+//        this.drawIdx++;
+//        continue;
+//      }
+      if ((mvObj.lineType != lineType)) {
         this.drawIdx++;
         continue;
       }
-
-      if (mvObj.avgFramePointNumber <= 2) {
-        this.drawIdx++;
-        continue;
-      }
+      
+//      if (mvObj.pointNumber < 10) {
+//        this.drawIdx++;
+//        continue;
+//      }
+      
+//      if (mvObj.pointNumber < 10 || !(mvObj.xySigma < 1.1 && mvObj.tySigma < 1.1 && mvObj.txSigma < 1.1)) {
+//        this.drawIdx++;
+//        continue;
+//      }
 
       if (!idxList.isEmpty() && !(idxList.contains(new Integer(this.drawIdx)))) {
         this.drawIdx++;
@@ -187,9 +183,8 @@ public class DrawObject {
       g2d.setFont(font1);
 //      drawStr = "" + (j) + "," + (mvObj.lastPoint.getFrameNumber());
 
-      String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
-      System.out.println(debugStr);
-
+//      String debugStr = String.format("line%03d: %s", this.drawIdx, mvObj.getOutLineInfo());
+//      System.out.println(debugStr);
 //      System.out.println("movObj record list\n");
 //      mvObj.printOT1Info(ht.historyOT1s);
 //      mvObj.printInfo2();
@@ -215,6 +210,32 @@ public class DrawObject {
     int pointSize2 = 6;
 
     for (OtObserveRecord ot1 : ht.historyOT1s) {
+      int x = (int) (ot1.getX() - pointSize2 / 2);
+      int y = (int) (ot1.getY() - pointSize2 / 2);
+      g2d.drawRect(x, y, pointSize2, pointSize2);
+    }
+
+    try {
+      javax.imageio.ImageIO.write(image, "png", new File(fName));
+    } catch (IOException ex) {
+      Logger.getLogger(FindMoveObject.class.getName()).log(Level.SEVERE, null, ex);
+    }
+  }
+
+  public void drawPointNotInLine(String fName) {
+
+    BufferedImage image = new BufferedImage(ht.imgWidth, ht.imgHeight, BufferedImage.TYPE_INT_ARGB);
+    Graphics2D g2d = image.createGraphics();
+    BasicStroke bs = new BasicStroke(2);
+    g2d.setBackground(Color.WHITE);
+    g2d.fillRect(0, 0, ht.imgWidth, ht.imgHeight);
+    g2d.setStroke(bs);
+    g2d.setColor(Color.RED);
+    int pointSize2 = 6;
+
+    Iterator tIter = ht.notInLine.iterator();
+    while (tIter.hasNext()) {
+      OtObserveRecord ot1 = ht.historyOT1s.get((int) tIter.next());
       int x = (int) (ot1.getX() - pointSize2 / 2);
       int y = (int) (ot1.getY() - pointSize2 / 2);
       g2d.drawRect(x, y, pointSize2, pointSize2);

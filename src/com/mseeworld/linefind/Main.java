@@ -6,7 +6,6 @@ package com.mseeworld.linefind;
 import com.gwac.model.OtObserveRecord;
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -16,17 +15,10 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Scanner;
-import org.apache.commons.math3.fitting.PolynomialCurveFitter;
-import org.apache.commons.math3.fitting.WeightedObservedPoint;
-import org.apache.commons.math3.fitting.WeightedObservedPoints;
-import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 /**
  *
@@ -46,26 +38,25 @@ public class Main {
 
   public void findMovingObject() {
 
-//    String[] dates = {"160928-1-5", "160928-3-10", "160928-5-11", "160928-6-11", "160928-7-12",
-//      "160928-7-16", "160928-8-12", "160928-8-16", "160928-11-5", "160928-12-5", "160928-1-5"};
-    String[] dates = {"170108-8-30"}; //170108-1-12 170108-8-30
+    String[] dates = {"161228-4-32"}; //4-32-debug1  161228-4-32 161228-4-32-0-0-notInLine
 
     for (String tname : dates) {
       ot1list.clear();
 
-      String ot1File = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170108\\" + tname + ".txt";
-      String outImagePoint = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\170108\\" + tname + "-point-all.png";
+      String ot1File = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\161228\\" + tname + ".txt";
+      String outImagePoint = "E:\\work\\program\\java\\netbeans\\LineFinder\\resources\\161228\\" + tname + "-point-all.png";
 
       getOT1(ot1File);
-//      drawPoint(outImagePoint);
 
       processOneDay(ot1list, tname, 0, 0);
+      
+//      LineTest ltest = new LineTest();
+//      ltest.fitTest11(ot1list);
     }
   }
 
   public void processOneDay(List<OtObserveRecord> oors, String dateStr, int dpmId, int skyId) {
 
-    System.out.println(dateStr + ": " + oors.size());
     FindMoveObject fmo = new FindMoveObject();
 
     int lastFrameNumber = 0;
@@ -77,21 +68,32 @@ public class Main {
         lastFrameNumber = oor.getFfNumber();
         fmo.addFrame(singleFrame);
         singleFrame.clear();
-      } else {
-        singleFrame.add(oor);
       }
+      singleFrame.add(oor);
     }
-
+    fmo.addFrame(singleFrame);
     fmo.endAllFrame();
+    System.out.println(dateStr + ", total record " + oors.size() + ", added record " + fmo.numOT1s
+            + ", not in line " + fmo.notInLine.size() 
+            + ", in line " + fmo.totalLinePointNumber);
 
-//    for (LineObject obj : ht.mvObjs) {
-//      if (obj.pointNumber >= validLineMinPoint && obj.isValidLine()) {
-//        saveLineObject(obj, dateStr, dpmId, skyId);
-//      }
-//    }
-    String imgPath = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + ".png";
-    DrawObject dObj = new DrawObject(fmo);
-    dObj.drawObjsAll(imgPath);
+    String ot2Path = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + "\\";
+    String imgPath1 = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + "1.png";
+    String imgPath2 = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + "2.png";
+    String imgPath3 = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + "3.png";
+    String imgPath4 = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + "4.png";
+    String imgPathall = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + "-all.png";
+    String imgPathOutLine = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + "-outLine.png";
+    String notInLine = "E:\\" + dateStr + "-" + dpmId + "-" + skyId + "-notInLine.txt";
+//    DrawObject dObj = new DrawObject(fmo);
+//    dObj.drawObjsAll(imgPath1, '1');
+//    dObj.drawObjsAll(imgPath2, '2');
+//    dObj.drawObjsAll(imgPath3, '3');
+//    dObj.drawObjsAll(imgPath4, '4');
+//    dObj.drawPoint(imgPathall);
+//    dObj.drawPointNotInLine(imgPathOutLine);
+//    fmo.saveNotInLine(notInLine);
+    fmo.saveLine(ot2Path);
   }
 
   public void getOT1(String ot1file) {
@@ -100,12 +102,12 @@ public class Main {
     BufferedReader reader = null;
     try {
       SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-      SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
+      SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S");
       reader = new BufferedReader(new FileReader(file));
       String tempString = null;
       int tline = 0;
       int tline2 = 0;
-      int tlen = "2017/1/3 15:54:17".length();
+      int tlen = "2016/12/28 15:54:17".length();
       //2318.9	381.724	170.284	4.01298	2015/12/18 18:25:28	10.7607	1777	34	1626.55	2273.18
       while ((tempString = reader.readLine()) != null) {
         if (tempString.isEmpty()) {
@@ -119,8 +121,7 @@ public class Main {
         String dateStr = tstr[4];
         float mag = Float.parseFloat(tstr[5]);
         int number = Integer.parseInt(tstr[6]);
-        float xTemp = Float.parseFloat(tstr[8]);
-        float yTemp = Float.parseFloat(tstr[9]);
+        long oorId = Long.parseLong(tstr[8]);
         Date tdate = null;
         if (tstr[4].trim().length() == tlen) {
           tdate = sdf.parse(tstr[4]);
@@ -137,6 +138,7 @@ public class Main {
         ot1.setFfNumber(number);
         ot1.setXTemp(x);
         ot1.setYTemp(y);
+        ot1.setOorId(oorId);
         ot1.setDateUt(tdate);
         ot1.setDateStr(dateStr);
 
@@ -156,30 +158,6 @@ public class Main {
         } catch (IOException e1) {
         }
       }
-    }
-  }
-
-  public void drawPoint(String fName) {
-
-    BufferedImage image = new BufferedImage(LineParameterConfig.imgWidth, LineParameterConfig.imgHeight, BufferedImage.TYPE_INT_ARGB);
-    Graphics2D g2d = image.createGraphics();
-    BasicStroke bs = new BasicStroke(2);
-    g2d.setBackground(Color.WHITE);
-    g2d.fillRect(0, 0, LineParameterConfig.imgWidth, LineParameterConfig.imgHeight);
-    g2d.setStroke(bs);
-    g2d.setColor(Color.RED);
-    int pointSize2 = 6;
-
-    for (OtObserveRecord ot1 : ot1list) {
-      int x = (int) (ot1.getX() - pointSize2 / 2);
-      int y = (int) (ot1.getY() - pointSize2 / 2);
-      g2d.drawRect(x, y, pointSize2, pointSize2);
-    }
-
-    try {
-      javax.imageio.ImageIO.write(image, "png", new File(fName));
-    } catch (IOException ex) {
-      Logger.getLogger(FindMoveObject.class.getName()).log(Level.SEVERE, null, ex);
     }
   }
 

@@ -10,6 +10,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,9 +30,12 @@ public class FindMoveObject {
   protected int numOT1s;
   HoughLine[][] houghArray;
   ArrayList<OtObserveRecord> historyOT1s;
+  HashSet<Integer> notInLine;
+  HashSet<Integer> inLine;
   public ArrayList<LineObject> mvObjs;
   ArrayList<LineObject> fastObjs;
   ArrayList<LineObject> singleFrameObjs;
+  int totalLinePointNumber;
 
   int maxHoughFrameNunmber;
   int objInitMinPoint;
@@ -80,6 +85,8 @@ public class FindMoveObject {
   private void initialise() {
 
     this.historyOT1s = new ArrayList();
+    this.notInLine = new HashSet();
+    this.inLine = new HashSet();
     this.mvObjs = new ArrayList();
     this.fastObjs = new ArrayList();
     this.singleFrameObjs = new ArrayList();
@@ -113,9 +120,9 @@ public class FindMoveObject {
     }
     this.endFrame();
   }
-  
-  public void findSingleFrameLine(List<OtObserveRecord> singleFrame){
-    
+
+  public void findSingleFrameLine(List<OtObserveRecord> singleFrame) {
+
   }
 
   public void historyAddPoint(OtObserveRecord ot1) {
@@ -174,30 +181,6 @@ public class FindMoveObject {
     }
   }
 
-  public void lineAddPoint2(OtObserveRecord ot1) {
-
-    boolean findLine = false;
-    int i = 0;
-    for (LineObject tline : this.mvObjs) {
-
-      if (!tline.isEndLine(ot1.getFfNumber() - this.maxHoughFrameNunmber + 1)) {
-        double preYDiff = Math.abs(ot1.getY() - tline.preNextYByX(ot1.getX()));
-        if (preYDiff < 10) {
-          double preXDiff = Math.abs(ot1.getX() - tline.preNextXByT(ot1.getDateUt().getTime()));
-          double preYDiff2 = Math.abs(ot1.getY() - tline.preNextYByT(ot1.getDateUt().getTime()));
-          if (preXDiff < 10 && preYDiff2 < 10) {
-            tline.addPoint(numOT1s - 1, ot1.getFfNumber(), ot1.getX(), ot1.getY(), ot1.getDateUt(), ot1.getOorId());
-            findLine = true;
-            break;
-          }
-        }
-      }
-    }
-    if (!findLine) {
-      this.houghAddPoint(ot1);
-    }
-  }
-
   public void endFrame() {
 
   }
@@ -205,11 +188,90 @@ public class FindMoveObject {
   public void endAllFrame() {
 
     for (LineObject tmo : this.mvObjs) {
-      if (!tmo.endLine) {
-        tmo.isEndLine(Integer.MAX_VALUE);
+      tmo.endLine();
+    }
+
+    mergeLine();
+
+    int i = 1;
+    for (LineObject tmo : this.mvObjs) {
+      tmo.statistic();
+      tmo.clearPointXY();
+      tmo.clearPointTXY();
+      tmo.statistic();
+      tmo.analysis();
+      tmo.findFirstAndLastPoint();
+      i++;
+    }
+    getOutLinePointSet();
+//    reprocess();
+  }
+
+  public void reprocess() {
+
+    getOutLinePointSet();
+
+    int tnum = 0;
+    Iterator<Integer> titer = this.notInLine.iterator();
+    while (titer.hasNext()) {
+      int idx = titer.next();
+      OtObserveRecord ot1 = this.historyOT1s.get(idx);
+      for (LineObject tline : this.mvObjs) {
+        if (tline.isOnLineReprocess(ot1)) {
+          tnum++;
+          HoughtPoint hp = new HoughtPoint(idx, ot1.getFfNumber(), ot1.getX(), ot1.getY(), ot1.getDateUt(), ot1.getOorId());
+          tline.addPointReprocess(hp);
+          break;
+        }
+      }
+    }
+    int i = 1;
+    for (LineObject tmo : this.mvObjs) {
+      tmo.statistic();
+      tmo.analysis();
+      tmo.findFirstAndLastPoint();
+      i++;
+    }
+
+    getOutLinePointSet();
+  }
+
+  public void statisticAndAnalysisLine() {
+
+    for (LineObject tobj : this.mvObjs) {
+      tobj.statistic();
+      tobj.analysis();
+    }
+  }
+
+  public void mergeLine() {
+
+    int lineNum = this.mvObjs.size();
+    Boolean matchFlag[] = new Boolean[lineNum];
+
+    for (int i = 0; i < lineNum; i++) {
+      matchFlag[i] = false;
+    }
+
+    for (int i = 0; i < lineNum; i++) {
+      LineObject tobj = this.mvObjs.get(i);
+      if (!matchFlag[i]) {
+        for (int j = i + 1; j < lineNum; j++) {
+          LineObject tobj2 = this.mvObjs.get(j);
+          if (!matchFlag[j] && tobj.matchLine(tobj2)) {
+//            tobj.merge(tobj2);
+            tobj.addLineObject(tobj2);
+            matchFlag[j] = true;
+          }
+        }
       }
     }
 
+    for (int i = lineNum - 1; i >= 0; i--) {
+      if (matchFlag[i]) {
+        this.mvObjs.remove(i);
+      }
+    }
   }
 
   public void clearAllPoint(LineObject tline) {
@@ -235,36 +297,29 @@ public class FindMoveObject {
     }
     root.mkdirs();
 
-    Integer idxArray[] = {14, 16, 60, 99, 100};
+    Integer idxArray[] = {};
+//    Integer idxArray[] = {14, 16, 60, 99, 100};
     ArrayList<Integer> idxList = new ArrayList(Arrays.asList(idxArray));
 
     int j = 0;
     for (LineObject mvObj : mvObjs) {
 
-      if (mvObj.pointNumber < validLineMinPoint || mvObj.frameList.size() <= 20) {
+      if (mvObj.pointNumber < validLineMinPoint || mvObj.frameList.size() <= 20 || mvObj.lineType != '1') {
         j++;
         continue;
       }
 
-//      if (!(idxList.contains(new Integer(j)))) {
-//        j++;
-//        continue;
-//      }
+      if (!idxList.isEmpty() && idxList.contains(new Integer(j))) {
+        j++;
+        continue;
+      }
       FileOutputStream out = null;
       try {
-        String fname = fpath + String.format("%03d.txt", j);
+        String fname = fpath + String.format("%03d-%03d.txt", j, mvObj.pointList.size());
         out = new FileOutputStream(new File(fname));
-//        out.write("pIdx, frameNumber, x, y, xDelta, yDelta, fnDelta, timeDelta, xSpeedfn, ySpeedfn, xSpeedt, ySpeedt\n".getBytes());
-        out.write("pIdx\t fmNum\t x\t y\t xDelta\t yDelta\t fnDelta\t timeDelta\t xSpeedt\t ySpeedt\t preX\t preY\t preDeltaX\t preDeltaY\n".getBytes());
-        int i = 0;
         for (HoughtPoint tPoint : mvObj.pointList) {
-//          OtObserveRecord tp = this.historyOT1s.get(tPoint.getpIdx());
-//              out.write(String.format("%4d, %s, %10.6f, %10.6f, %11.6f, %11.6f, %6.3f\n", 
-//                      tp.number, tp.dateStr, tp.ra, tp.dec, tp.x, tp.y, tp.mag).getBytes());
-//          out.write(String.format("%4d\t%s\t%10.6f\t%10.6f\t%11.6f\t%11.6f\t%6.3f\n",
-//                  tp.getFrameNumber(), tp.getDateStr(), tp.getRa(), tp.getDec(), tp.getX(), tp.getY(), tp.getMag()).getBytes());
-//          System.out.println(tPoint.getAllInfo());
-          out.write((tPoint.getAllInfo() + "\n").getBytes());
+          OtObserveRecord ot1 = this.historyOT1s.get(tPoint.getpIdx());
+          out.write((ot1.toString() + "\n").getBytes());
         }
         out.close();
       } catch (FileNotFoundException ex) {
@@ -280,6 +335,52 @@ public class FindMoveObject {
       }
       j++;
     }
+  }
+
+  public void saveNotInLine(String fname) {
+    FileOutputStream out = null;
+    try {
+      out = new FileOutputStream(new File(fname));
+      Iterator<Integer> titer = this.notInLine.iterator();
+      ArrayList<Integer> idList = new ArrayList();
+      while (titer.hasNext()) {
+        idList.add(titer.next());
+      }
+      QuickSort.sort(idList);
+      for (Integer idx : idList) {
+        OtObserveRecord ot1 = this.historyOT1s.get(idx);
+        out.write((ot1.toString() + "\n").getBytes());
+      }
+      out.close();
+    } catch (FileNotFoundException ex) {
+      Logger.getLogger(FindMoveObject.class.getName()).log(Level.SEVERE, null, ex);
+    } catch (IOException ex) {
+      Logger.getLogger(FindMoveObject.class.getName()).log(Level.SEVERE, null, ex);
+    } finally {
+      try {
+        out.close();
+      } catch (IOException ex) {
+        Logger.getLogger(FindMoveObject.class.getName()).log(Level.SEVERE, null, ex);
+      }
+    }
+  }
+
+  public void getOutLinePointSet() {
+
+    inLine.clear();
+    notInLine.clear();
+
+    for (LineObject line : this.mvObjs) {
+      for (HoughtPoint tpoint : line.pointList) {
+        inLine.add(tpoint.getpIdx());
+      }
+    }
+
+    totalLinePointNumber = inLine.size();
+    for (int i = 0; i < this.numOT1s; i++) {
+      notInLine.add(i);
+    }
+    notInLine.removeAll(inLine);
   }
 
 }

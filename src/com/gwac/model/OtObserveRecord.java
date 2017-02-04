@@ -334,13 +334,13 @@ public class OtObserveRecord implements java.io.Serializable {
   }
 
   public void printInfo() {
-    System.out.println(String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%f\t%f",
-            this.x, this.y, this.raD, this.decD, this.dateStr, this.magAper, this.ffNumber, this.XTemp, this.YTemp));
+    System.out.println(String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%d",
+            this.x, this.y, this.raD, this.decD, this.dateStr, this.magAper, this.ffNumber, this.oorId));
   }
 
   @Override
   public String toString() {
-    return String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%f\t%f",
-            this.x, this.y, this.raD, this.decD, this.dateStr, this.magAper, this.ffNumber, this.XTemp, this.YTemp);
+    return String.format("%f\t%f\t%f\t%f\t%s\t%f\t%d\t0\t%d",
+            this.x, this.y, this.raD, this.decD, this.dateStr, this.magAper, this.ffNumber, this.oorId);
   }
 }
