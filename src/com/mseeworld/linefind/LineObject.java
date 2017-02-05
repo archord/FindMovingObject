@@ -124,9 +124,6 @@ public class LineObject {
     double timeSigma = 3.0;
 
     if (this.pointNumber < 10) {
-//      if (this.firstPoint.getOorId() == 22076697) {
-//        System.out.println("here");
-//      }
       for (int i = 0; i < pNum; i++) {
         if (!xylist.contains(i)) {
           HoughtPoint hp = pointList.get(i);
@@ -644,9 +641,13 @@ public class LineObject {
         lineType = '1';
       }
     }
+  }
 
-    //对framePointMaxNumber大于等于2而且this.avgFramePointNumber小于等于2的目标一帧中的多个点合并为1个点
-    if (false && lineType == '1' && this.avgFramePointNumber > 1) {
+  //对framePointMaxNumber大于等于2而且this.avgFramePointNumber小于等于2的目标一帧中的多个点合并为1个点
+  public void mergeType1() {
+
+    if (lineType == '1' && this.avgFramePointNumber > 1) {
+//    if (false && lineType == '1' && this.avgFramePointNumber > 1) {
 
       for (HoughFrame hf : this.frameList) {
         int tnum = hf.pointList.size();

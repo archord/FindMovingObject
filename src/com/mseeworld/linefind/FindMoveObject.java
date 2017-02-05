@@ -195,14 +195,15 @@ public class FindMoveObject {
 
     int i = 1;
     for (LineObject tmo : this.mvObjs) {
-      tmo.statistic();
+//      tmo.statistic();
       tmo.clearPointXY();
       tmo.clearPointTXY();
-      tmo.statistic();
+//      tmo.statistic();
       tmo.analysis();
       tmo.findFirstAndLastPoint();
       i++;
     }
+
     getOutLinePointSet();
 //    reprocess();
   }
@@ -302,6 +303,7 @@ public class FindMoveObject {
     ArrayList<Integer> idxList = new ArrayList(Arrays.asList(idxArray));
 
     int j = 0;
+    int total = 0;
     for (LineObject mvObj : mvObjs) {
 
       if (mvObj.pointNumber < validLineMinPoint || mvObj.frameList.size() <= 20 || mvObj.lineType != '1') {
@@ -313,10 +315,27 @@ public class FindMoveObject {
         j++;
         continue;
       }
+
+      if (mvObj.framePointMultiNumber != 0) {
+        j++;
+        continue;
+      }
+
       FileOutputStream out = null;
       try {
-        String fname = fpath + String.format("%03d-%03d.txt", j, mvObj.pointList.size());
-        out = new FileOutputStream(new File(fname));
+        String fname = String.format("%03d-%03d.txt", j, mvObj.pointList.size());
+        String fullname = fpath + fname;
+
+        String debugStr = String.format("%s: %s", fname, mvObj.getOutLineInfo());
+        System.out.println(debugStr);
+        mvObj.mergeType1();
+        mvObj.statistic();
+        mvObj.updateInfo();
+        mvObj.findFirstAndLastPoint();
+        debugStr = String.format("%s: %s", fname, mvObj.getOutLineInfo());
+        System.out.println(debugStr);
+
+        out = new FileOutputStream(new File(fullname));
         for (HoughtPoint tPoint : mvObj.pointList) {
           OtObserveRecord ot1 = this.historyOT1s.get(tPoint.getpIdx());
           out.write((ot1.toString() + "\n").getBytes());
@@ -334,7 +353,9 @@ public class FindMoveObject {
         }
       }
       j++;
+      total++;
     }
+    System.out.println("total save " + total + " lines.");
   }
 
   public void saveNotInLine(String fname) {

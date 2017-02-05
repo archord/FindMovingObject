@@ -32,8 +32,10 @@ public class Main {
    * @param args the command line arguments
    */
   public static void main(String[] args) {
-    Main fmo = new Main();
-    fmo.findMovingObject();
+//    Main fmo = new Main();
+//    fmo.findMovingObject();
+    ResultCompare rc = new ResultCompare();
+    rc.compare();
   }
 
   public void findMovingObject() {

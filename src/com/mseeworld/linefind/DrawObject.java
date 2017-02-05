@@ -101,7 +101,7 @@ public class DrawObject {
         continue;
       }
       
-//      if (mvObj.pointNumber < 10) {
+//      if (mvObj.xySigma < 5) {
 //        this.drawIdx++;
 //        continue;
 //      }
